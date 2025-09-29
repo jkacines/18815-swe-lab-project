@@ -18,6 +18,7 @@ app = Flask(__name__)
 @app.route('/login', methods=['POST'])
 def login():
     # Extract data from request
+    # Expected: username, password
 
     # Connect to MongoDB
 
@@ -46,6 +47,7 @@ def mainPage():
 @app.route('/join_project', methods=['POST'])
 def join_project():
     # Extract data from request
+    # Expected: username, projectId
 
     # Connect to MongoDB
 
@@ -56,7 +58,24 @@ def join_project():
     # Return a JSON response
     return jsonify({})
 
-# Route for adding a new user
+# Route for user registration
+@app.route('/register', methods=['POST'])
+def register():
+    # Extract data from request
+    # Expected: username, password, email (optional)
+
+    # Connect to MongoDB
+
+    # Check if username already exists using the usersDB module
+
+    # Attempt to add the user using the usersDB module
+
+    # Close the MongoDB connection
+
+    # Return a JSON response
+    return jsonify({})
+
+# Route for adding a new user (legacy - use /register instead)
 @app.route('/add_user', methods=['POST'])
 def add_user():
     # Extract data from request
@@ -74,6 +93,7 @@ def add_user():
 @app.route('/get_user_projects_list', methods=['POST'])
 def get_user_projects_list():
     # Extract data from request
+    # Expected: username
 
     # Connect to MongoDB
 
