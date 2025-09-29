@@ -78,7 +78,7 @@ const MyRegistrationPage = () => {
     setErrors({});
     
     try {
-      const response = await axios.post('/register', {
+      const response = await axios.post('http://localhost:8000/register', {
         username: formData.username,
         password: formData.password,
         email: formData.email || undefined // Only send email if provided

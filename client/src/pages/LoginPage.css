@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #CC5500 0%, #BF5700 100%);
   padding: 20px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -39,7 +39,7 @@
   font-size: 28px;
   font-weight: 700;
   margin: 0 0 10px 0;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #CC5500, #BF5700);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -87,9 +87,9 @@
 
 .form-group input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #CC5500;
   background: white;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(204, 85, 0, 0.1);
 }
 
 .form-group input.error {
@@ -135,7 +135,7 @@
 .login-button {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #CC5500, #BF5700);
   color: white;
   border: none;
   border-radius: 8px;
@@ -149,7 +149,7 @@
 
 .login-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 8px 25px rgba(204, 85, 0, 0.3);
 }
 
 .login-button:active:not(:disabled) {
@@ -178,7 +178,7 @@
 .link-button {
   background: none;
   border: none;
-  color: #667eea;
+  color: #CC5500;
   text-decoration: none;
   font-size: 14px;
   font-weight: 500;
@@ -187,7 +187,7 @@
 }
 
 .link-button:hover {
-  color: #5a67d8;
+  color: #BF5700;
   text-decoration: underline;
 }
 
