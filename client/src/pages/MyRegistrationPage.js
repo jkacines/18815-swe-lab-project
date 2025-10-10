@@ -45,14 +45,7 @@ const MyRegistrationPage = () => {
       newErrors.email = 'Please enter a valid email address';
     }
     
-    // Password validation
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
-      newErrors.password = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
-    }
+    // Password validation - no requirements
     
     // Confirm password validation
     if (!formData.confirmPassword) {
@@ -78,7 +71,7 @@ const MyRegistrationPage = () => {
     setErrors({});
     
     try {
-      const response = await axios.post('http://localhost:8000/register', {
+      const response = await axios.post('http://localhost:8001/register', {
         username: formData.username,
         password: formData.password,
         email: formData.email || undefined // Only send email if provided
@@ -174,15 +167,6 @@ const MyRegistrationPage = () => {
               disabled={isLoading}
             />
             {errors.password && <span className="error-message">{errors.password}</span>}
-            <small style={{ 
-              color: '#888', 
-              fontSize: '12px', 
-              marginTop: '4px', 
-              display: 'block',
-              fontStyle: 'italic' 
-            }}>
-              Must be 6+ characters with uppercase, lowercase, and number
-            </small>
           </div>
           
           <div className="form-group">

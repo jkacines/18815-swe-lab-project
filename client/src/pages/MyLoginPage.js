@@ -29,17 +29,7 @@ const MyLoginPage = ({ onLogin }) => {
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.username.trim()) {
-      newErrors.username = 'Username is required';
-    } else if (formData.username.length < 3) {
-      newErrors.username = 'Username must be at least 3 characters';
-    }
-    
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    }
+    // No validation requirements
     
     return newErrors;
   };
@@ -58,7 +48,7 @@ const MyLoginPage = ({ onLogin }) => {
     setErrors({});
     
     try {
-      const response = await axios.post('http://localhost:8000/login', {
+      const response = await axios.post('http://localhost:8001/login', {
         username: formData.username,
         password: formData.password
       });
@@ -74,7 +64,13 @@ const MyLoginPage = ({ onLogin }) => {
       }
     } catch (error) {
       console.error('Login error:', error);
-      setMessage('Login failed. Please check your connection and try again.');
+      if (error.response && error.response.status === 401) {
+        setMessage('Invalid credentials. Please try again.');
+      } else if (error.response && error.response.data && error.response.data.message) {
+        setMessage(error.response.data.message);
+      } else {
+        setMessage('Login failed. Please check your connection and try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -151,6 +147,7 @@ const MyLoginPage = ({ onLogin }) => {
               Sign up here
             </button>
           </p>
+          {/* Commented out for now
           <button 
             type="button" 
             onClick={() => window.location.href = '/forgot-password'}
@@ -158,6 +155,7 @@ const MyLoginPage = ({ onLogin }) => {
           >
             Forgot your password?
           </button>
+          */}
         </div>
       </div>
     </div>

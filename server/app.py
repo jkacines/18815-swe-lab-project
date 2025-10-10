@@ -1,33 +1,60 @@
 # Import necessary libraries and modules
 from bson.objectid import ObjectId
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from pymongo import MongoClient
 
 # Import custom modules for database interactions
-import usersDB
-import projectsDB
-import hardwareDB
+import usersDatabase as usersDB
+import projectsDatabase as projectsDB
+import hardwareDatabase as hardwareDB
 
 # Define the MongoDB connection string
-MONGODB_SERVER = "your_mongodb_connection_string_here"
+MONGODB_SERVER = "mongodb://localhost:27017/"
 
 # Initialize a new Flask web application
 app = Flask(__name__)
+CORS(app)
 
 # Route for user login
 @app.route('/login', methods=['POST'])
 def login():
-    # Extract data from request
-    # Expected: username, password
+    try:
+        # Extract data from request
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
 
-    # Connect to MongoDB
+        # Validate required fields
+        if not username or not password:
+            return jsonify({
+                'success': False,
+                'message': 'Username and password are required'
+            }), 400
 
-    # Attempt to log in the user using the usersDB module
+        # Connect to MongoDB
+        client = MongoClient(MONGODB_SERVER)
 
-    # Close the MongoDB connection
+        # Attempt to log in the user
+        result = usersDB.login(client, username, password)
+        
+        if result:
+            return jsonify({
+                'success': True,
+                'message': 'Login successful',
+                'user': {'username': username}
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid credentials'
+            }), 401
 
-    # Return a JSON response
-    return jsonify({})
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Login error: {str(e)}'
+        }), 500
 
 # Route for the main page (Work in progress)
 @app.route('/main')
@@ -61,19 +88,50 @@ def join_project():
 # Route for user registration
 @app.route('/register', methods=['POST'])
 def register():
-    # Extract data from request
-    # Expected: username, password, email (optional)
+    try:
+        # Extract data from request
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        email = data.get('email')
+        birthday = data.get('birthday')
 
-    # Connect to MongoDB
+        # Validate required fields
+        if not username or not password:
+            return jsonify({
+                'success': False,
+                'message': 'Username and password are required'
+            }), 400
 
-    # Check if username already exists using the usersDB module
+        # Connect to MongoDB
+        client = MongoClient(MONGODB_SERVER)
 
-    # Attempt to add the user using the usersDB module
+        # Check if username already exists
+        if usersDB.usernameExists(client, username):
+            return jsonify({
+                'success': False,
+                'message': 'Username already exists'
+            }), 400
 
-    # Close the MongoDB connection
+        # Attempt to add the user
+        result = usersDB.addUser(client, username, password, email)
+        
+        if result:
+            return jsonify({
+                'success': True,
+                'message': 'User registered successfully'
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to register user'
+            }), 500
 
-    # Return a JSON response
-    return jsonify({})
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Registration error: {str(e)}'
+        }), 500
 
 # Route for adding a new user (legacy - use /register instead)
 @app.route('/add_user', methods=['POST'])
@@ -214,5 +272,5 @@ def check_inventory():
 
 # Main entry point for the application
 if __name__ == '__main__':
-    app.run()
+    app.run(port=8001)
 
