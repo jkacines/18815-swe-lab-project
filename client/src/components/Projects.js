@@ -1,16 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import ProjectCard from "./ProjectCard";
+// import "./Projects.css";
 
 function Projects({ nameQuery, userQuery, minQty, maxQty }) {
-  const [joined, setJoined] = useState([false, true, false]);
+  // (your existing filtering logic stays the same)
 
-  const handleJoinToggle = (index) => {
-    const updated = [...joined];
-    updated[index] = !updated[index];
-    setJoined(updated);
-  };
-
-  // Example data
   const projects = [
     {
       name: "Project Name 1",
@@ -32,38 +26,50 @@ function Projects({ nameQuery, userQuery, minQty, maxQty }) {
     },
   ];
 
-    const filtered = projects.filter((p) => {
-    const totalRemaining =
-      (p.hwset1?.capacity - p.hwset1?.used || 0) +
-      (p.hwset2?.capacity - p.hwset2?.used || 0);
+  const filtered = projects.filter((p) => {
+    const hw1Used = Number(p.hwset1?.used) || 0;
+    const hw1Cap = Number(p.hwset1?.capacity) || 0;
+    const hw2Used = Number(p.hwset2?.used) || 0;
+    const hw2Cap = Number(p.hwset2?.capacity) || 0;
 
-    const projectName = p.name?.toLowerCase() || "";
-    const searchName = nameQuery?.toLowerCase() || "";
-    const searchUser = userQuery?.toLowerCase() || "";
+    // total available hardware remaining (both sets combined)
+    const totalRemaining = (hw1Cap - hw1Used) + (hw2Cap - hw2Used);
 
-    const matchesName = projectName.includes(searchName);
-    const matchesUser = Array.isArray(p.users)
-      ? p.users.some((u) => (u?.toLowerCase() || "").includes(searchUser))
-      : false;
+    const name = p.name?.toLowerCase() || "";
+    const users = p.users?.map((u) => u.toLowerCase()) || [];
+
+    const matchesName = name.includes(nameQuery.toLowerCase());
+    const matchesUser = users.some((u) =>
+      u.includes(userQuery.toLowerCase())
+    );
+
+    const min = Number(minQty);
+    const max = Number(maxQty);
 
     const matchesQty =
-      (!minQty || totalRemaining >= Number(minQty)) &&
-      (!maxQty || totalRemaining <= Number(maxQty));
+      (!minQty || totalRemaining >= min) &&
+      (!maxQty || totalRemaining <= max);
 
     return matchesName && matchesUser && matchesQty;
   });
 
-
   return (
-    <div className="projects-container">
+    <div
+      className="projects-grid"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(350px, 1fr))",
+        gap: "1.5rem",
+      }}
+    >
       {filtered.length > 0 ? (
         filtered.map((proj, i) => (
           <ProjectCard
             key={i}
             name={proj.name}
             users={proj.users}
-            joined={joined[i]}
-            onToggle={() => handleJoinToggle(i)}
+            joined={false}
+            onToggle={() => {}}
           />
         ))
       ) : (

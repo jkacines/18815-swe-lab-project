@@ -3,7 +3,7 @@ import Projects from "../components/Projects";
 import ProjectFilters from "../components/ProjectFilters";
 import { Avatar, Chip } from "@mui/material";
 
-const MyUserPortal = ({ user, onLogout }) => {
+const MyUserPortal = ({ response, onLogout }) => {
   // filter states
   const [nameQuery, setNameQuery] = useState("");
   const [userQuery, setUserQuery] = useState("");
@@ -25,50 +25,58 @@ const MyUserPortal = ({ user, onLogout }) => {
       >
         <h1 style={{ margin: 0 }}>Hardware Checkout System</h1>
 
-        {user && (
-          <Chip
-            label={user.username || "User"}
-            color="primary"
-            variant="outlined"
-            avatar={
-              <Avatar
-                sx={{
-                  bgcolor: "#3182ce",
-                  width: 28,
-                  height: 28,
-                  fontSize: "0.9rem",
-                }}
-              >
-                {user.username ? user.username[0].toUpperCase() : "U"}
-              </Avatar>
-            }
-            sx={{
-              fontSize: "0.95rem",
-              height: 38,
-              paddingRight: "6px",
-              borderWidth: "1.5px",
-              "& .MuiChip-label": {
-                padding: "0 8px",
-                fontWeight: 500,
-              },
-            }}
-          />
-        )}
-
-        <button
-          onClick={onLogout}
+        {/* Right side: user chip + logout */}
+        <div
           style={{
-            padding: "0.5rem 1rem",
-            background: "#e53e3e",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            marginLeft: "1rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "1rem", // space between chip and logout
           }}
         >
-          Logout
-        </button>
+          {response.user && (
+            <Chip
+              label={response.user.username || "User"}
+              color="primary"
+              variant="outlined"
+              avatar={
+                <Avatar
+                  sx={{
+                    bgcolor: "#3182ce",
+                    width: 28,
+                    height: 28,
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  {response.user.username ? response.user.username[0].toUpperCase() : "U"}
+                </Avatar>
+              }
+              sx={{
+                fontSize: "0.95rem",
+                height: 38,
+                paddingRight: "6px",
+                borderWidth: "1.5px",
+                "& .MuiChip-label": {
+                  padding: "0 8px",
+                  fontWeight: 500,
+                },
+              }}
+            />
+          )}
+
+          <button
+            onClick={onLogout}
+            style={{
+              padding: "0.5rem 1rem",
+              background: "#e53e3e",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            Logout
+          </button>
+        </div>
       </div>
 
       {/* Two-column layout */}
@@ -98,6 +106,9 @@ const MyUserPortal = ({ user, onLogout }) => {
             <li>Manage your projects</li>
             <li>View checkout history</li>
           </ul>
+
+          <h3>Backend Data</h3>
+          <pre>{JSON.stringify(response, null, 2)}</pre>
         </div>
 
         {/* RIGHT COLUMN: Projects */}

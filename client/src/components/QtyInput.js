@@ -18,7 +18,8 @@ function QtyInput() {
         display: "flex",
         alignItems: "center",
         gap: "6px",
-        width: "100%", // ensure full card width
+        width: "100%",
+        flexWrap: "nowrap",       // ✅ prevent wrapping
       }}
     >
       <TextField
@@ -26,14 +27,30 @@ function QtyInput() {
         size="small"
         variant="outlined"
         sx={{
-          flexGrow: 1, // ← makes this expand to fill available space
+          flexGrow: 1,            // expands to fill available space
           "& .MuiInputBase-root": { height: 36 },
         }}
       />
-      <Button variant="outlined" size="small" sx={{ height: 36 }}>
+      <Button
+        variant="outlined"
+        size="small"
+        sx={{
+          height: 36,
+          whiteSpace: "nowrap",   // ✅ keeps text on one line
+          flexShrink: 0,          // ✅ prevents button from shrinking
+        }}
+      >
         Check In
       </Button>
-      <Button variant="outlined" size="small" sx={{ height: 36 }}>
+      <Button
+        variant="outlined"
+        size="small"
+        sx={{
+          height: 36,
+          whiteSpace: "nowrap",   // ✅ keeps text on one line
+          flexShrink: 0,          // ✅ prevents button from shrinking
+        }}
+      >
         Check Out
       </Button>
     </div>

@@ -13,10 +13,11 @@ function ProjectCard({ name, users, joined, onToggle }) {
     <div
       style={{
         border: "1px solid #ccc",
-        padding: "15px",
-        marginBottom: "10px",
-        borderRadius: "6px",
+        padding: "12px 16px",
+        borderRadius: "8px",
         backgroundColor: bgColor,
+        minWidth: "300px",
+        maxWidth: "100%",
       }}
     >
       <h3 class="project-title">{name}</h3>
