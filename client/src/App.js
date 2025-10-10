@@ -12,7 +12,7 @@ function App() {
 
   const handleLogin = (userData) => {
     setIsAuthenticated(true);
-    setUser(userData);
+    setUser(userData.user);
     console.log('User logged in:', userData);
   };
 
