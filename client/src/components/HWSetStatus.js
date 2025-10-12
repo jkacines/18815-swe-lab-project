@@ -1,36 +1,36 @@
 import React from "react";
-import { LinearProgress, Box, Typography } from "@mui/material";
+import { Box, Typography, LinearProgress } from "@mui/material";
 
-function HWSetStatus({ label, used, capacity }) {
-  const percent = Math.min((used / capacity) * 100, 100);
+function HWSetStatus({ label, available, capacity }) {
+  const percent = (available / capacity) * 100;
 
-  return (
-    <Box
-      sx={{
-        backgroundColor: "#f9fafb",
-        padding: "6px 10px",   // ↓ tighter padding
-        borderRadius: "6px",
-        mb: 0.75,
-      }}
-    >
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.25 }}>
-        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-          {label}
-        </Typography>
-        <Typography variant="body2" sx={{ color: "#444" }}>
-          {used}/{capacity}
-        </Typography>
-      </Box>
-      <LinearProgress
-        variant="determinate"
-        value={percent}
-        sx={{
-          height: 6,            // ↓ thinner progress bar
-          borderRadius: 3,
-        }}
-      />
-    </Box>
-  );
+  function HWSetStatus({ label, usage, progress }) {
+    return (
+      <div style={{ marginBottom: "0.75rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <strong>{label}</strong>
+          <span>{usage}</span>
+        </div>
+        <div
+          style={{
+            background: "#eee",
+            height: "6px",
+            borderRadius: "4px",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              width: `${progress}%`,
+              height: "100%",
+              background: progress < 30 ? "#e53e3e" : "#38a169",
+            }}
+          ></div>
+        </div>
+      </div>
+    );
+  }
+
 }
 
 export default HWSetStatus;

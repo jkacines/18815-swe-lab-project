@@ -1,46 +1,174 @@
-# Import necessary libraries and modules
+# projectsDatabase.py
 from pymongo import MongoClient
+import HWDatabase as HWDB
 
-import hardwareDatabase as hardwareDB
+# In-memory project storage (replace with MongoDB for persistence)
+_projects_storage = []
 
 '''
 Structure of Project entry:
 Project = {
-    'projectName': projectName,
-    'projectId': projectId,
-    'description': description,
-    'hwSets': {HW1: 0, HW2: 10, ...},
-    'users': [user1, user2, ...]
+    'projectName': str,
+    'description': str,
+    'hwSets': {                       # per-project reserved hardware pool
+        'HWSet1': {'used': 0, 'capacity': 100},  # reserved 100, using 0
+        'HWSet2': {'used': 20, 'capacity': 50}
+    },
+    'users': [ 'jason', 'alice' ]
 }
 '''
 
-# Function to query a project by its ID
-def queryProject(client, projectId):
-    # Query and return a project from the database
-    pass
 
-# Function to create a new project
-def createProject(client, projectName, projectId, description):
-    # Create a new project in the database
-    pass
+# ============================================================
+# Create a new project
+# ============================================================
+def createProject(client, projectName, description, hwSets_dict):
+    """
+    Create a new project and allocate hardware from the global HW pool.
+    hwSets_dict: { 'HWSet1': 100, 'HWSet2': 50 } → reserve from global pool
+    """
+    try:
+        # Prevent duplicate project names
+        for p in _projects_storage:
+            if p['projectName'] == projectName:
+                print(f"⚠️ Project '{projectName}' already exists.")
+                return False
 
-# Function to add a user to a project
-def addUser(client, projectId, userId):
-    # Add a user to the specified project
-    pass
+        hwSets = {}
 
-# Function to update hardware usage in a project
-def updateUsage(client, projectId, hwSetName):
-    # Update the usage of a hardware set in the specified project
-    pass
+        for hwName, reserve_amount in hwSets_dict.items():
+            hw_info = HWDB.queryHardwareSet(client, hwName)
+            if not hw_info:
+                print(f"⚠️ Hardware set '{hwName}' not found.")
+                continue
 
-# Function to check out hardware for a project
-def checkOutHW(client, projectId, hwSetName, qty, userId):
-    # Check out hardware for the specified project and update availability
-    pass
+            capacity = hw_info.get('capacity', 0)
+            availability = hw_info.get('availability', 0)
 
-# Function to check in hardware for a project
-def checkInHW(client, projectId, hwSetName, qty, userId):
-    # Check in hardware for the specified project and update availability
-    pass
+            # Ensure enough global hardware is available
+            if reserve_amount > availability:
+                print(f"⚠️ Not enough '{hwName}' available. Requested {reserve_amount}, only {availability} left.")
+                reserve_amount = availability
 
+            # Deduct reserved amount from global availability
+            new_global_avail = availability - reserve_amount
+            HWDB.updateAvailability(client, hwName, new_global_avail)
+
+            # Add reserved pool to project (starts unused)
+            hwSets[hwName] = {
+                'used': 0,
+                'capacity': reserve_amount
+            }
+
+        # Build project document
+        project_doc = {
+            'projectName': projectName,
+            'description': description,
+            'hwSets': hwSets,
+            'users': []
+        }
+
+        _projects_storage.append(project_doc)
+        print(f"✅ Created project '{projectName}' with hardware: {hwSets}")
+        return True
+
+    except Exception as e:
+        print(f"❌ Error creating project: {e}")
+        return False
+
+
+# ============================================================
+# Get all projects
+# ============================================================
+def getProjects(client):
+    """Return all project entries."""
+    try:
+        return _projects_storage
+    except Exception as e:
+        print(f"❌ Error getting projects: {e}")
+        return []
+
+
+# ============================================================
+# Add user to project
+# ============================================================
+def addProjectUser(client, projectName, username):
+    """Add a user to an existing project."""
+    try:
+        for p in _projects_storage:
+            if p['projectName'] == projectName:
+                if username not in p['users']:
+                    p['users'].append(username)
+                    print(f"✅ Added user '{username}' to project '{projectName}'")
+                    return True
+                else:
+                    print(f"⚠️ User '{username}' already in project '{projectName}'")
+                    return False
+        print(f"⚠️ Project '{projectName}' not found.")
+        return False
+    except Exception as e:
+        print(f"❌ Error adding user to project: {e}")
+        return False
+
+
+# ============================================================
+# Check out hardware within a project
+# ============================================================
+def checkOutHW(client, projectName, hwName, qty):
+    """
+    Check out hardware from a project's reserved pool.
+    Only affects the project's 'used' count.
+    """
+    try:
+        for p in _projects_storage:
+            if p['projectName'] == projectName:
+                if hwName not in p['hwSets']:
+                    print(f"⚠️ '{hwName}' not found in project '{projectName}'")
+                    return False
+
+                hw_entry = p['hwSets'][hwName]
+                available = hw_entry['capacity'] - hw_entry['used']
+
+                if qty > available:
+                    print(f"⚠️ Not enough hardware in project pool. Requested {qty}, only {available} available.")
+                    qty = available
+
+                hw_entry['used'] += qty
+                print(f"✅ Checked out {qty} from '{hwName}' in project '{projectName}'")
+                return True
+
+        print(f"⚠️ Project '{projectName}' not found.")
+        return False
+    except Exception as e:
+        print(f"❌ Error checking out HW: {e}")
+        return False
+
+
+# ============================================================
+# Check in hardware within a project
+# ============================================================
+def checkInHW(client, projectName, hwName, qty):
+    """
+    Check in hardware to a project's reserved pool.
+    Only affects the project's 'used' count.
+    """
+    try:
+        for p in _projects_storage:
+            if p['projectName'] == projectName:
+                if hwName not in p['hwSets']:
+                    print(f"⚠️ '{hwName}' not found in project '{projectName}'")
+                    return False
+
+                hw_entry = p['hwSets'][hwName]
+                if qty > hw_entry['used']:
+                    qty = hw_entry['used']  # cap to what’s checked out
+
+                hw_entry['used'] -= qty
+                print(f"✅ Checked in {qty} to '{hwName}' in project '{projectName}'")
+                return True
+
+        print(f"⚠️ Project '{projectName}' not found.")
+        return False
+    except Exception as e:
+        print(f"❌ Error checking in HW: {e}")
+        return False
