@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import axios from "axios";
 import {
   Box,
@@ -13,51 +13,16 @@ import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
 import BuildIcon from "@mui/icons-material/Build";
 import DescriptionIcon from "@mui/icons-material/Description";
-import "./ProjectCreate.css";
+import "./SidebarPanel.css";
 
-function ProjectCreate() {
+function ProjectCreate({ hardware = [], onProjectUpdated }) {
   const [projectName, setProjectName] = useState("");
   const [description, setDescription] = useState("");
   const [hardwareSets, setHardwareSets] = useState([{ name: "", quantity: "" }]);
-  const [availableHardware, setAvailableHardware] = useState([]);
-
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState({});
 
-  // Fetch available hardware sets from backend
-  useEffect(() => {
-    const fetchHardware = async () => {
-      try {
-        const response = await axios.get("http://localhost:8001/hardware");
-        if (response.data.success) {
-          setAvailableHardware(response.data.hardware);
-        }
-      } catch (error) {
-        console.error("Error fetching hardware:", error);
-      }
-    };
-    fetchHardware();
-  }, []);
-
-  // Add a new hardware row
-  const handleAddHardware = () => {
-    setHardwareSets([...hardwareSets, { name: "", quantity: "" }]);
-  };
-
-  // Remove a hardware row
-  const handleRemoveHardware = (index) => {
-    setHardwareSets(hardwareSets.filter((_, i) => i !== index));
-  };
-
-  // Handle changes to a hardware field
-  const handleHardwareChange = (index, field, value) => {
-    const updated = [...hardwareSets];
-    updated[index][field] = value;
-    setHardwareSets(updated);
-  };
-
-  // Validate form inputs
   const validateForm = () => {
     const newErrors = {};
     if (!projectName.trim()) newErrors.projectName = "Project name is required.";
@@ -66,7 +31,18 @@ function ProjectCreate() {
     return newErrors;
   };
 
-  // Handle form submission
+  const handleAddHardware = () =>
+    setHardwareSets([...hardwareSets, { name: "", quantity: "" }]);
+
+  const handleRemoveHardware = (index) =>
+    setHardwareSets(hardwareSets.filter((_, i) => i !== index));
+
+  const handleHardwareChange = (index, field, value) => {
+    const updated = [...hardwareSets];
+    updated[index][field] = value;
+    setHardwareSets(updated);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
@@ -78,7 +54,6 @@ function ProjectCreate() {
       return;
     }
 
-    // Convert hardware sets to dictionary format for backend
     const hwSetsPayload = {};
     hardwareSets.forEach((hw) => {
       if (hw.name && hw.quantity) hwSetsPayload[hw.name] = Number(hw.quantity);
@@ -97,33 +72,20 @@ function ProjectCreate() {
         setProjectName("");
         setDescription("");
         setHardwareSets([{ name: "", quantity: "" }]);
+        if (onProjectUpdated) onProjectUpdated(); // 🔹 notify parent
       } else {
         setMessage(`❌ ${response.data.message}`);
       }
     } catch (error) {
       console.error("Error creating project:", error);
-      if (error.response && error.response.data && error.response.data.message) {
-        setMessage(`❌ ${error.response.data.message}`);
-      } else {
-        setMessage("❌ Failed to create project. Please try again.");
-      }
+      setMessage("❌ Failed to create project. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Box
-      sx={{
-        backgroundColor: "#f9fafb",
-        padding: "16px",
-        borderRadius: "8px",
-        border: "1px solid #e2e8f0",
-        display: "flex",
-        flexDirection: "column",
-        gap: "1rem",
-      }}
-    >
+    <Box className="sidebar-panel">
       <Typography variant="h6" sx={{ mb: 1 }}>
         Create Project
       </Typography>
@@ -172,14 +134,7 @@ function ProjectCreate() {
       </Typography>
 
       {hardwareSets.map((hw, index) => (
-        <Box
-          key={index}
-          sx={{
-            display: "flex",
-            gap: "8px",
-            alignItems: "center",
-          }}
-        >
+        <div key={index} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <TextField
             select
             label="Select Hardware"
@@ -189,8 +144,8 @@ function ProjectCreate() {
             onChange={(e) => handleHardwareChange(index, "name", e.target.value)}
             sx={{ flex: 2 }}
           >
-            {availableHardware.length > 0 ? (
-              availableHardware.map((option) => (
+            {hardware.length > 0 ? (
+              hardware.map((option) => (
                 <MenuItem key={option.hwName} value={option.hwName}>
                   {option.hwName} ({option.availability}/{option.capacity} available)
                 </MenuItem>
@@ -218,7 +173,7 @@ function ProjectCreate() {
           >
             <DeleteIcon />
           </IconButton>
-        </Box>
+        </div>
       ))}
 
       {errors.hardwareSets && (
@@ -227,7 +182,6 @@ function ProjectCreate() {
         </Typography>
       )}
 
-      {/* Add Hardware Button */}
       <Button
         variant="outlined"
         size="small"
@@ -238,25 +192,15 @@ function ProjectCreate() {
         Add Hardware Set
       </Button>
 
-      {/* Success/Error Message */}
       {message && (
-        <div
-          className={`message ${
-            message.includes("✅") ? "success" : "error"
-          }`}
-        >
+        <div className={`message ${message.includes("✅") ? "success" : "error"}`}>
           {message}
         </div>
       )}
 
-      {/* Submit Button */}
       <Button
         variant="contained"
-        sx={{
-          backgroundColor: "#3182ce",
-          "&:hover": { backgroundColor: "#2b6cb0" },
-          alignSelf: "flex-end",
-        }}
+        className="create-btn"
         disabled={isLoading}
         onClick={handleSubmit}
       >

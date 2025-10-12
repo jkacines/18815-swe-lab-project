@@ -1,35 +1,7 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React from "react";
 import ProjectCard from "./ProjectCard";
 
-function Projects({ nameQuery }) {
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  // Fetch projects from backend when component loads
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const response = await axios.get("http://localhost:8001/projects");
-        if (response.data.success) {
-          setProjects(response.data.projects || []);
-        } else {
-          setError("Failed to load projects.");
-        }
-      } catch (err) {
-        console.error("Error fetching projects:", err);
-        setError("Error fetching projects.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProjects();
-  }, []);
-
-  if (loading) return <p>Loading projects...</p>;
-  if (error) return <p style={{ color: "red" }}>{error}</p>;
-
+function Projects({ nameQuery, projects = [], onUserJoined }) {
   // 🔍 Filter projects by name only
   const filtered = projects.filter((p) =>
     (p.projectName || "").toLowerCase().includes(nameQuery.toLowerCase())
@@ -50,9 +22,8 @@ function Projects({ nameQuery }) {
             key={i}
             name={proj.projectName}
             users={proj.users || []}
-            joined={false}
-            onToggle={() => {}}
             hwSets={proj.hwSets}
+            onUserJoined={onUserJoined}
           />
         ))
       ) : (

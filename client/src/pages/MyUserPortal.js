@@ -19,6 +19,15 @@ const MyUserPortal = ({ response, onLogout }) => {
   const [projects, setProjects] = useState([]);
   const [hardware, setHardware] = useState([]);
 
+  const fetchProjects = async () => {
+    try {
+      const res = await axios.get("http://localhost:8001/projects");
+      if (res.data.success) setProjects(res.data.projects);
+    } catch (err) {
+      console.error("Error fetching projects:", err);
+    }
+  };
+
   const fetchHardware = async () => {
     try {
       const res = await axios.get("http://localhost:8001/hardware");
@@ -28,7 +37,14 @@ const MyUserPortal = ({ response, onLogout }) => {
     }
   };
 
+  const handleProjectUpdated = async () => {
+    await fetchProjects();   // refresh project list
+    await fetchHardware();   // refresh hardware list
+  };
+
+
   useEffect(() => {
+    fetchProjects();
     fetchHardware();
   }, []);
 
@@ -82,7 +98,7 @@ const MyUserPortal = ({ response, onLogout }) => {
                 nameQuery={nameQuery}
                 setNameQuery={setNameQuery}
               />
-              <ProjectCreate />
+              <ProjectCreate hardware={hardware} onProjectUpdated={handleProjectUpdated} />
             </>
           ) : (
             <HWCreate onHardwareUpdated={fetchHardware} />
@@ -103,6 +119,8 @@ const MyUserPortal = ({ response, onLogout }) => {
           {activeView === "projects" ? (
             <Projects
               nameQuery={nameQuery}
+              projects={projects}
+              onUserJoined={fetchProjects}
             />
           ) : (
             <Hardware hardware={hardware} />

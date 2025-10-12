@@ -1,9 +1,12 @@
 import React, { useState } from "react";
+import axios from "axios";
 import { Button, TextField } from "@mui/material";
-import HWSetStatus from "./HWSetStatus"; // existing component
+import HWSetStatus from "./HWSetStatus";
 
-function ProjectCard({ name, users, hwSets = {}, joined, onToggle }) {
+function ProjectCard({ name, users = [], hwSets = {}, joined, onUserJoined }) {
   const [qty, setQty] = useState("");
+  const [isJoining, setIsJoining] = useState(false);
+  const [message, setMessage] = useState("");
 
   // Total available = sum of (capacity - used)
   const totalAvailable = Object.values(hwSets).reduce((sum, hw) => {
@@ -11,6 +14,31 @@ function ProjectCard({ name, users, hwSets = {}, joined, onToggle }) {
     const capacity = hw.capacity ?? 0;
     return sum + Math.max(capacity - used, 0);
   }, 0);
+
+  // --- Handle Join Project ---
+  const handleJoin = async () => {
+    setIsJoining(true);
+    setMessage("");
+
+    try {
+      const res = await axios.post("http://localhost:8001/projects/addUser", {
+        projectName: name,
+        username: localStorage.getItem("username"), // 🔹 assumes username stored on login
+      });
+
+      if (res.data.success) {
+        setMessage("✅ Joined project successfully");
+        if (onUserJoined) onUserJoined(); // 🔹 trigger refresh in parent
+      } else {
+        setMessage(`❌ ${res.data.message || "Failed to join project"}`);
+      }
+    } catch (err) {
+      console.error("Error joining project:", err);
+      setMessage("❌ Failed to join project");
+    } finally {
+      setIsJoining(false);
+    }
+  };
 
   return (
     <div
@@ -25,20 +53,22 @@ function ProjectCard({ name, users, hwSets = {}, joined, onToggle }) {
       {/* Project title */}
       <h3 style={{ marginBottom: "0.5rem" }}>{name}</h3>
 
-      {/* Authorized users */}
-      {users && users.length > 0 && (
-        <div style={{ marginBottom: "1rem" }}>
-          <strong>Authorized Users:</strong>{" "}
-          {users.map((u, i) => (
+      {/* Authorized users — always visible */}
+      <div style={{ marginBottom: "1rem" }}>
+        <strong>Authorized Users:</strong>{" "}
+        {users.length > 0 ? (
+          users.map((u, i) => (
             <span key={i} style={{ marginRight: "0.5rem" }}>
               {u}
             </span>
-          ))}
-        </div>
-      )}
+          ))
+        ) : (
+          <span style={{ color: "#718096" }}>No users yet</span>
+        )}
+      </div>
 
       {/* Hardware sets */}
-      {Object.entries(hwSets).map(([hwName, hwData], idx) => {
+      {Object.entries(hwSets).map(([hwName, hwData]) => {
         const used = hwData.used ?? 0;
         const capacity = hwData.capacity ?? 0;
         const available = capacity - used;
@@ -56,7 +86,7 @@ function ProjectCard({ name, users, hwSets = {}, joined, onToggle }) {
       {/* Divider */}
       <hr style={{ margin: "1rem 0" }} />
 
-      {/* Check in/out */}
+      {/* Check in/out section */}
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <TextField
           label="Enter qty"
@@ -91,12 +121,28 @@ function ProjectCard({ name, users, hwSets = {}, joined, onToggle }) {
         <Button
           variant="contained"
           size="small"
-          onClick={onToggle}
-          sx={{ backgroundColor: joined ? "#e53e3e" : "#3182ce" }}
+          disabled={isJoining}
+          onClick={handleJoin}
+          sx={{ backgroundColor: "#3182ce", "&:hover": { backgroundColor: "#2b6cb0" } }}
         >
-          {joined ? "LEAVE" : "JOIN"}
+          {isJoining ? "Joining..." : "JOIN"}
         </Button>
       </div>
+
+      {message && (
+        <div
+          style={{
+            marginTop: "0.8rem",
+            padding: "0.6rem",
+            borderRadius: "4px",
+            background: message.includes("✅") ? "#c6f6d5" : "#fed7d7",
+            color: message.includes("✅") ? "#22543d" : "#742a2a",
+            textAlign: "center",
+          }}
+        >
+          {message}
+        </div>
+      )}
     </div>
   );
 }
