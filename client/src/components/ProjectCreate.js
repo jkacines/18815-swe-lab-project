@@ -125,7 +125,7 @@ function ProjectCreate() {
       }}
     >
       <Typography variant="h6" sx={{ mb: 1 }}>
-        Create New Project
+        Create Project
       </Typography>
 
       {/* Project Name */}

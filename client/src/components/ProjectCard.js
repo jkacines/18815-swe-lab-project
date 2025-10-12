@@ -38,16 +38,17 @@ function ProjectCard({ name, users, hwSets = {}, joined, onToggle }) {
       )}
 
       {/* Hardware sets */}
-      {Object.entries(hwSets).map(([hwName, hw]) => {
-        const used = hw.used ?? 0;
-        const capacity = hw.capacity ?? 0;
+      {Object.entries(hwSets).map(([hwName, hwData], idx) => {
+        const used = hwData.used ?? 0;
+        const capacity = hwData.capacity ?? 0;
         const available = capacity - used;
+
         return (
           <HWSetStatus
             key={hwName}
             label={hwName}
-            usage={`${available}/${capacity} available`}
-            progress={capacity ? (available / capacity) * 100 : 0}
+            available={available}
+            capacity={capacity}
           />
         );
       })}
