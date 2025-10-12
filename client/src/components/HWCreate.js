@@ -9,16 +9,16 @@ import {
 } from "@mui/material";
 import BuildIcon from "@mui/icons-material/Build";
 import NumbersIcon from "@mui/icons-material/Numbers";
-import "./ProjectCreate.css"; // reuse same message styling
+import "./SidebarPanel.css"; // shared styling
 
-function HWCreate() {
+function HWCreate({ onHardwareUpdated }) {
   const [hwName, setHwName] = useState("");
   const [capacity, setCapacity] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [errors, setErrors] = useState({});
 
-  // Validate input
+  // Validate form input
   const validateForm = () => {
     const newErrors = {};
     if (!hwName.trim()) newErrors.hwName = "Hardware set name is required.";
@@ -27,6 +27,7 @@ function HWCreate() {
     return newErrors;
   };
 
+  // Submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
@@ -40,43 +41,29 @@ function HWCreate() {
 
     setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:8001/hardware/create", {
+      const res = await axios.post("http://localhost:8001/hardware/create", {
         hwName,
         capacity: Number(capacity),
       });
 
-      if (response.data.success) {
-        setMessage(`✅ ${response.data.message}`);
+      if (res.data.success) {
+        setMessage(`✅ ${res.data.message}`);
         setHwName("");
         setCapacity("");
+        if (onHardwareUpdated) onHardwareUpdated(); // refresh parent data
       } else {
-        setMessage(`❌ ${response.data.message}`);
+        setMessage(`❌ ${res.data.message}`);
       }
-    } catch (error) {
-      console.error("Error creating hardware:", error);
-      if (error.response && error.response.data && error.response.data.message) {
-        setMessage(`❌ ${error.response.data.message}`);
-      } else {
-        setMessage("❌ Failed to create hardware set. Please try again.");
-      }
+    } catch (err) {
+      console.error("Error creating hardware:", err);
+      setMessage("❌ Failed to create hardware set. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Box
-      sx={{
-        backgroundColor: "#f9fafb",
-        padding: "16px",
-        borderRadius: "8px",
-        border: "1px solid #e2e8f0",
-        display: "flex",
-        flexDirection: "column",
-        gap: "1rem",
-        marginTop: "1.5rem",
-      }}
-    >
+    <Box className="sidebar-panel">
       <Typography variant="h6" sx={{ mb: 1 }}>
         Create Hardware Set
       </Typography>
@@ -131,14 +118,10 @@ function HWCreate() {
         </div>
       )}
 
-      {/* Submit Button */}
+      {/* Submit */}
       <Button
         variant="contained"
-        sx={{
-          backgroundColor: "#3182ce",
-          "&:hover": { backgroundColor: "#2b6cb0" },
-          alignSelf: "flex-end",
-        }}
+        className="create-btn"
         disabled={isLoading}
         onClick={handleSubmit}
       >
