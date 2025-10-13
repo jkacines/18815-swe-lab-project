@@ -28,7 +28,7 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route 
-            path="/login" 
+            path="/user/login" 
             element={
               !isAuthenticated ? (
                 <MyLoginPage onLogin={handleLogin} />
@@ -38,7 +38,7 @@ function App() {
             } 
           />
           <Route 
-            path="/register" 
+            path="/user/register" 
             element={
               !isAuthenticated ? (
                 <MyRegistrationPage />
@@ -65,7 +65,7 @@ function App() {
               isAuthenticated ? (
                 <MyUserPortal response={user} onLogout={handleLogout} />
               ) : (
-                <Navigate to="/login" replace />
+                <Navigate to="/user/login" replace />
               )
             } 
           />
@@ -73,13 +73,13 @@ function App() {
           {/* Default route */}
           <Route 
             path="/" 
-            element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} 
+            element={<Navigate to={isAuthenticated ? "/dashboard" : "/user/login"} replace />} 
           />
           
           {/* Catch all route */}
           <Route 
             path="*" 
-            element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} 
+            element={<Navigate to={isAuthenticated ? "/dashboard" : "/user/login"} replace />} 
           />
         </Routes>
       </div>

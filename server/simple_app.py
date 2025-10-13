@@ -39,7 +39,7 @@ def health_check():
     }), 200
 
 # User registration endpoint
-@app.route('/register', methods=['POST'])
+@app.route('/user/register', methods=['POST'])
 def register():
     try:
         # Extract data from request
@@ -83,7 +83,7 @@ def register():
         return jsonify({'success': False, 'message': 'Registration failed'}), 500
 
 # User login endpoint  
-@app.route('/login', methods=['POST'])
+@app.route('/user/login', methods=['POST'])
 def login():
     try:
         # Extract data from request

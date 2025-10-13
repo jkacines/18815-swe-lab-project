@@ -48,7 +48,7 @@ const MyLoginPage = ({ onLogin }) => {
     setErrors({});
     
     try {
-      const response = await axios.post('http://localhost:8001/login', {
+      const response = await axios.post('http://localhost:8001/user/login', {
         username: formData.username,
         password: formData.password
       });
@@ -78,7 +78,7 @@ const MyLoginPage = ({ onLogin }) => {
 
   const handleRegisterRedirect = () => {
     // This would be handled by routing in a full app
-    window.location.href = '/register';
+    window.location.href = '/user/register';
   };
 
   return (
