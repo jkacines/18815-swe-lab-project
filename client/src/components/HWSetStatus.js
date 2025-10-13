@@ -1,5 +1,4 @@
 import React from "react";
-import { Box, Typography, LinearProgress } from "@mui/material";
 
 function HWSetStatus({ label, available, capacity }) {
   const percent = (available / capacity) * 100;

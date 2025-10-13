@@ -1,11 +1,20 @@
 import React from "react";
-import { TextField, InputAdornment, Typography, Box } from "@mui/material";
+import {
+  TextField,
+  InputAdornment,
+  Typography,
+  Box,
+  FormControlLabel,
+  Checkbox,
+} from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import "./SidebarPanel.css"; // shared sidebar styling
 
 function ProjectFilters({
   nameQuery,
   setNameQuery,
+  showMyProjects,
+  setShowMyProjects,
 }) {
   return (
     <Box className="sidebar-panel">
@@ -28,6 +37,19 @@ function ProjectFilters({
           ),
         }}
         fullWidth
+      />
+
+      {/* My Projects Filter */}
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={showMyProjects}
+            onChange={(e) => setShowMyProjects(e.target.checked)}
+            color="primary"
+          />
+        }
+        label="My Projects"
+        sx={{ mt: 1 }}
       />
     </Box>
   );

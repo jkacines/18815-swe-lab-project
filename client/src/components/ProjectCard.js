@@ -1,34 +1,45 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { Button, TextField } from "@mui/material";
+import { Button, TextField, Checkbox, FormControlLabel } from "@mui/material";
 import HWSetStatus from "./HWSetStatus";
+import UserBanner from "./UserBanner";
 
-function ProjectCard({ name, users = [], hwSets = {}, joined, onUserJoined }) {
+function ProjectCard({ name, users = [], hwSets = {}, username, onUserJoined }) {
   const [qty, setQty] = useState("");
   const [isJoining, setIsJoining] = useState(false);
   const [message, setMessage] = useState("");
+  const [selectedHW, setSelectedHW] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Total available = sum of (capacity - used)
-  const totalAvailable = Object.values(hwSets).reduce((sum, hw) => {
-    const used = hw.used ?? 0;
-    const capacity = hw.capacity ?? 0;
-    return sum + Math.max(capacity - used, 0);
-  }, 0);
+  // ✅ safely check membership (handles both object and string usernames)
+  const isMember = users.some(
+    (u) =>
+      (typeof u === "object" ? u.username : u) ===
+      (typeof username === "object" ? username.username : username)
+  );
 
-  // --- Handle Join Project ---
+  // --- JOIN PROJECT ---
   const handleJoin = async () => {
+    const uname =
+      typeof username === "object" ? username.username : username;
+
+    if (!uname) {
+      setMessage("❌ Missing username — please log in again.");
+      return;
+    }
+
     setIsJoining(true);
     setMessage("");
 
     try {
       const res = await axios.post("http://localhost:8001/projects/addUser", {
         projectName: name,
-        username: localStorage.getItem("username"), // 🔹 assumes username stored on login
+        username: uname,
       });
 
       if (res.data.success) {
         setMessage("✅ Joined project successfully");
-        if (onUserJoined) onUserJoined(); // 🔹 trigger refresh in parent
+        if (onUserJoined) onUserJoined();
       } else {
         setMessage(`❌ ${res.data.message || "Failed to join project"}`);
       }
@@ -40,53 +51,161 @@ function ProjectCard({ name, users = [], hwSets = {}, joined, onUserJoined }) {
     }
   };
 
+  // --- CHECK IN / OUT ---
+  const handleHardwareAction = async (action) => {
+    if (!selectedHW) {
+      setMessage("❌ Please select a hardware set first.");
+      return;
+    }
+    if (!qty || qty <= 0) {
+      setMessage("❌ Enter a valid quantity.");
+      return;
+    }
+
+    setIsProcessing(true);
+    setMessage("");
+
+    const endpoint =
+      action === "checkin"
+        ? "http://localhost:8001/projects/checkin"
+        : "http://localhost:8001/projects/checkout";
+
+    try {
+      const res = await axios.post(endpoint, {
+        projectName: name,
+        hwName: selectedHW,
+        qty: Number(qty),
+      });
+
+      if (res.data.success) {
+        setMessage(
+          `✅ ${action === "checkin" ? "Checked in" : "Checked out"} ${qty} from ${selectedHW}`
+        );
+        if (onUserJoined) onUserJoined();
+        setQty("");
+      } else {
+        setMessage(`❌ ${res.data.message || "Action failed"}`);
+      }
+    } catch (err) {
+      console.error(`Error during ${action}:`, err);
+      setMessage(`❌ Failed to ${action} hardware.`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSelectHW = (hwName) => {
+    setSelectedHW((prev) => (prev === hwName ? null : hwName));
+  };
+
   return (
     <div
       style={{
         border: "1px solid #e2e8f0",
         borderRadius: "8px",
         padding: "1.5rem",
-        backgroundColor: "#fff",
+        backgroundColor: isMember ? "#f0fff4" : "#fff",
         boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+        transition: "background-color 0.3s ease",
       }}
     >
-      {/* Project title */}
-      <h3 style={{ marginBottom: "0.5rem" }}>{name}</h3>
-
-      {/* Authorized users — always visible */}
-      <div style={{ marginBottom: "1rem" }}>
-        <strong>Authorized Users:</strong>{" "}
-        {users.length > 0 ? (
-          users.map((u, i) => (
-            <span key={i} style={{ marginRight: "0.5rem" }}>
-              {u}
-            </span>
-          ))
-        ) : (
-          <span style={{ color: "#718096" }}>No users yet</span>
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "0.5rem",
+        }}
+      >
+        <h3 style={{ margin: 0 }}>{name}</h3>
+        {!isMember && (
+          <Button
+            variant="contained"
+            size="small"
+            disabled={isJoining}
+            onClick={handleJoin}
+            sx={{
+              backgroundColor: "#3182ce",
+              "&:hover": { backgroundColor: "#2b6cb0" },
+            }}
+          >
+            {isJoining ? "Joining..." : "JOIN"}
+          </Button>
         )}
       </div>
 
-      {/* Hardware sets */}
-      {Object.entries(hwSets).map(([hwName, hwData]) => {
-        const used = hwData.used ?? 0;
-        const capacity = hwData.capacity ?? 0;
-        const available = capacity - used;
+      {/* Authorized users */}
+      <div style={{ marginBottom: "1rem" }}>
+        <strong>Authorized Users:</strong>
+        <div
+          style={{
+            marginTop: "0.5rem",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0.4rem",
+          }}
+        >
+          {users.length > 0 ? (
+            users.map((u, i) => (
+              <UserBanner
+                key={i}
+                username={typeof u === "object" ? u.username : u}
+                color={isMember ? "success" : "primary"}
+              />
+            ))
+          ) : (
+            <span style={{ color: "#718096" }}>No users yet</span>
+          )}
+        </div>
+      </div>
 
-        return (
-          <HWSetStatus
-            key={hwName}
-            label={hwName}
-            available={available}
-            capacity={capacity}
-          />
-        );
-      })}
+      {/* Compact HW sets list */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+        {Object.entries(hwSets).map(([hwName, hwData]) => {
+          const used = hwData.used ?? 0;
+          const capacity = hwData.capacity ?? 0;
+          const available = capacity - used;
+          const isSelected = selectedHW === hwName;
 
-      {/* Divider */}
+          return (
+            <div
+              key={hwName}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                marginBottom: "0.4rem",
+              }}
+            >
+              {/* Checkbox on the left — owned by ProjectCard */}
+              <Checkbox
+                checked={isSelected}
+                onChange={() => handleSelectHW(hwName)}
+                color="primary"
+                size="small"
+                sx={{
+                  padding: "0.25rem",
+                  "& .MuiSvgIcon-root": { fontSize: "1rem" },
+                }}
+              />
+
+              {/* HWSetStatus unchanged — just displays label + progress */}
+              <div style={{ flex: 1 }}>
+                <HWSetStatus
+                  label={hwName}
+                  available={available}
+                  capacity={capacity}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       <hr style={{ margin: "1rem 0" }} />
 
-      {/* Check in/out section */}
+      {/* Check in/out buttons */}
       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
         <TextField
           label="Enter qty"
@@ -96,39 +215,25 @@ function ProjectCard({ name, users = [], hwSets = {}, joined, onUserJoined }) {
           onChange={(e) => setQty(e.target.value)}
           sx={{ flex: 1 }}
         />
-        <Button variant="outlined" size="small">
+        <Button
+          variant="outlined"
+          size="small"
+          disabled={!isMember || isProcessing}
+          onClick={() => handleHardwareAction("checkin")}
+        >
           CHECK IN
         </Button>
-        <Button variant="outlined" size="small">
+        <Button
+          variant="outlined"
+          size="small"
+          disabled={!isMember || isProcessing}
+          onClick={() => handleHardwareAction("checkout")}
+        >
           CHECK OUT
         </Button>
       </div>
 
-      {/* Divider */}
-      <hr style={{ margin: "1rem 0" }} />
-
-      {/* Footer */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
-        <span style={{ color: "#4a5568", fontSize: "0.9rem" }}>
-          {totalAvailable} total available
-        </span>
-        <Button
-          variant="contained"
-          size="small"
-          disabled={isJoining}
-          onClick={handleJoin}
-          sx={{ backgroundColor: "#3182ce", "&:hover": { backgroundColor: "#2b6cb0" } }}
-        >
-          {isJoining ? "Joining..." : "JOIN"}
-        </Button>
-      </div>
-
+      {/* Message */}
       {message && (
         <div
           style={{

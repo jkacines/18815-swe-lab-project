@@ -6,11 +6,12 @@ import ProjectCreate from "../components/ProjectCreate";
 import HWCreate from "../components/HWCreate";
 import Hardware from "../components/Hardware";
 import PageHeader from "../components/PageHeader";
-import { Avatar, Chip, ButtonGroup, Button } from "@mui/material";
+import { ButtonGroup, Button } from "@mui/material";
 
 const MyUserPortal = ({ response, onLogout }) => {
   // Current user view (projects or hardware)
   const [activeView, setActiveView] = useState("projects");
+  const [showMyProjects, setShowMyProjects] = useState(false);
 
   // Project filter
   const [nameQuery, setNameQuery] = useState("");
@@ -97,6 +98,8 @@ const MyUserPortal = ({ response, onLogout }) => {
               <ProjectFilters
                 nameQuery={nameQuery}
                 setNameQuery={setNameQuery}
+                showMyProjects={showMyProjects}
+                setShowMyProjects={setShowMyProjects}
               />
               <ProjectCreate hardware={hardware} onProjectUpdated={handleProjectUpdated} />
             </>
@@ -104,8 +107,8 @@ const MyUserPortal = ({ response, onLogout }) => {
             <HWCreate onHardwareUpdated={fetchHardware} />
           )}
 
-          <h3>Backend Data</h3>
-          <pre>{JSON.stringify(response, null, 2)}</pre>
+          {/* <h3>Backend Data</h3>
+          <pre>{JSON.stringify(response, null, 2)}</pre> */}
         </div>
 
         {/* RIGHT COLUMN */}
@@ -120,7 +123,9 @@ const MyUserPortal = ({ response, onLogout }) => {
             <Projects
               nameQuery={nameQuery}
               projects={projects}
+              username={response.user}
               onUserJoined={fetchProjects}
+              showMyProjects={showMyProjects}
             />
           ) : (
             <Hardware hardware={hardware} />

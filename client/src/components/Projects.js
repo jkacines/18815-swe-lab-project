@@ -1,11 +1,23 @@
 import React from "react";
 import ProjectCard from "./ProjectCard";
 
-function Projects({ nameQuery, projects = [], onUserJoined }) {
-  // 🔍 Filter projects by name only
-  const filtered = projects.filter((p) =>
-    (p.projectName || "").toLowerCase().includes(nameQuery.toLowerCase())
-  );
+function Projects({ nameQuery, projects = [], username, onUserJoined, showMyProjects }) {
+  const filtered = projects.filter((p) => {
+    const matchesName = (p.projectName || "")
+      .toLowerCase()
+      .includes(nameQuery.toLowerCase());
+
+    const isUserAuthorized = showMyProjects
+      ? p.users?.some(
+          (u) =>
+            (typeof u === "object" ? u.username : u) ===
+            (typeof username === "object" ? username.username : username)
+        )
+      : true;
+
+    return matchesName && isUserAuthorized;
+  });
+
 
   return (
     <div
@@ -23,15 +35,18 @@ function Projects({ nameQuery, projects = [], onUserJoined }) {
             name={proj.projectName}
             users={proj.users || []}
             hwSets={proj.hwSets}
+            username={username}
             onUserJoined={onUserJoined}
           />
         ))
       ) : (
-        <p>No matching projects found.</p>
+        <p style={{ color: "#718096", textAlign: "center" }}>
+          No projects found
+        </p>
       )}
 
-      <h3>Backend Data</h3>
-      <pre>{JSON.stringify(filtered, null, 2)}</pre>
+      {/* <h3>Backend Data</h3>
+      <pre>{JSON.stringify(filtered, null, 2)}</pre> */}
     </div>
   );
 }

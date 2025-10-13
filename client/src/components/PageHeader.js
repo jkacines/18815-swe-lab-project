@@ -1,5 +1,5 @@
 import React from "react";
-import { Avatar, Chip } from "@mui/material";
+import UserBanner from "./UserBanner";
 
 function PageHeader({ title, user, onLogout }) {
   return (
@@ -16,38 +16,10 @@ function PageHeader({ title, user, onLogout }) {
       {/* Title */}
       <h1 style={{ margin: 0 }}>{title}</h1>
 
-      {/* Right side: user info + logout */}
+      {/* Right side: username + logout */}
       <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
         {user && (
-          <Chip
-            label={user.username || "User"}
-            color="primary"
-            variant="outlined"
-            avatar={
-              <Avatar
-                sx={{
-                  bgcolor: "#3182ce",
-                  width: 28,
-                  height: 28,
-                  fontSize: "0.9rem",
-                }}
-              >
-                {user.username
-                  ? user.username[0].toUpperCase()
-                  : "U"}
-              </Avatar>
-            }
-            sx={{
-              fontSize: "0.95rem",
-              height: 38,
-              paddingRight: "6px",
-              borderWidth: "1.5px",
-              "& .MuiChip-label": {
-                padding: "0 8px",
-                fontWeight: 500,
-              },
-            }}
-          />
+          <UserBanner username={user.username} />
         )}
 
         <button
