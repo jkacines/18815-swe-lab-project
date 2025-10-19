@@ -3,61 +3,79 @@ from bson.objectid import ObjectId
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
+from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 
 # Import custom modules for database interactions
 import usersDatabase as usersDB
 import projectsDatabase as projectsDB
 import hardwareDatabase as hardwareDB
+import interface as interface
 
-# Define the MongoDB connection string
-MONGODB_SERVER = "mongodb://localhost:27017/"
+import os
+from dotenv import load_dotenv
+from motor.motor_asyncio import AsyncIOMotorClient
+
+# Load environment variables
+load_dotenv()
+
+# MongoDB configuration
+MONGO_URI = os.getenv("MONGO_URI")
+DB_NAME = os.getenv("DB_NAME")
+
+# Create MongoDB client and database instance
+client = AsyncIOMotorClient(MONGO_URI)
+db = client[DB_NAME]
+
 
 # Initialize a new Flask web application
-app = Flask(__name__)
-CORS(app)
-
+app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # Your frontend URL
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods including OPTIONS
+    allow_headers=["*"],  # Allow all headers
+)
 # Route for user login
-@app.route('/login', methods=['POST'])
-def login():
+@app.post("/login")
+async def login(user: interface.LoginRequest):
+    print(user)
     try:
-        # Extract data from request
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
-
         # Validate required fields
-        if not username or not password:
-            return jsonify({
-                'success': False,
-                'message': 'Username and password are required'
-            }), 400
-
-        # Connect to MongoDB
-        client = MongoClient(MONGODB_SERVER)
+        if not user.username or not user.password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    'success': False,
+                    'message': 'Username and password are required'
+                }
+            )
 
         # Attempt to log in the user
-        result = usersDB.login(client, username, password)
+        result = await usersDB.login(db, user.username, user.password)
         
         if result:
-            return jsonify({
+            return {
                 'success': True,
                 'message': 'Login successful',
-                'user': {'username': username}
-            }), 200
+                'user': {'username': user.username}
+            }
         else:
-            return jsonify({
-                'success': False,
-                'message': 'Invalid credentials'
-            }), 401
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail={
+                    'success': False,
+                    'message': 'Invalid credentials',
+                    'user': {'username': user.username}
+                }
+            )
 
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': f'Login error: {str(e)}'
-        }), 500
+    except HTTPException:
+        raise
 
 # Route for the main page (Work in progress)
-@app.route('/main')
+@app.get('/main')
 def mainPage():
     # Extract data from request
 
@@ -71,7 +89,7 @@ def mainPage():
     return jsonify({})
 
 # Route for joining a project
-@app.route('/join_project', methods=['POST'])
+@app.post('/join_project')
 def join_project():
     # Extract data from request
     # Expected: username, projectId
@@ -86,55 +104,54 @@ def join_project():
     return jsonify({})
 
 # Route for user registration
-@app.route('/register', methods=['POST'])
-def register():
+@app.post('/register')
+async def register(user: interface.RegisterRequest):
+    print(user)
     try:
-        # Extract data from request
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
-        email = data.get('email')
-        birthday = data.get('birthday')
-
         # Validate required fields
-        if not username or not password:
-            return jsonify({
-                'success': False,
-                'message': 'Username and password are required'
-            }), 400
-
-        # Connect to MongoDB
-        client = MongoClient(MONGODB_SERVER)
+        print(user)
+        if not user.username or not user.password:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    'success': False,
+                    'message': 'Username and password are required'
+                }
+            )
 
         # Check if username already exists
-        if usersDB.usernameExists(client, username):
-            return jsonify({
-                'success': False,
-                'message': 'Username already exists'
-            }), 400
+        existing = await usersDB.usernameExists(db, user.username)
+        if existing:
+            print("Here")
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    'success': False,
+                    'message': 'Username already exists'
+                }
+            )
 
         # Attempt to add the user
-        result = usersDB.addUser(client, username, password, email)
+        result = await usersDB.addUser(db, user.username, user.password, user.email)
         
         if result:
-            return jsonify({
+            return {
                 'success': True,
                 'message': 'User registered successfully'
-            }), 200
+            }
         else:
-            return jsonify({
-                'success': False,
-                'message': 'Failed to register user'
-            }), 500
-
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': f'Registration error: {str(e)}'
-        }), 500
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    'success': False,
+                    'message': 'Failed to register user'
+                }
+            )
+    except HTTPException:
+        raise
 
 # Route for adding a new user (legacy - use /register instead)
-@app.route('/add_user', methods=['POST'])
+@app.post('/add_user')
 def add_user():
     # Extract data from request
 
@@ -148,7 +165,7 @@ def add_user():
     return jsonify({})
 
 # Route for getting the list of user projects
-@app.route('/get_user_projects_list', methods=['POST'])
+@app.post('/get_user_projects_list')
 def get_user_projects_list():
     # Extract data from request
     # Expected: username
@@ -163,7 +180,7 @@ def get_user_projects_list():
     return jsonify({})
 
 # Route for creating a new project
-@app.route('/create_project', methods=['POST'])
+@app.post('/create_project')
 def create_project():
     # Extract data from request
 
@@ -177,7 +194,7 @@ def create_project():
     return jsonify({})
 
 # Route for getting project information
-@app.route('/get_project_info', methods=['POST'])
+@app.post('/get_project_info')
 def get_project_info():
     # Extract data from request
 
@@ -191,7 +208,7 @@ def get_project_info():
     return jsonify({})
 
 # Route for getting all hardware names
-@app.route('/get_all_hw_names', methods=['POST'])
+@app.post('/get_all_hw_names')
 def get_all_hw_names():
     # Connect to MongoDB
 
@@ -203,7 +220,7 @@ def get_all_hw_names():
     return jsonify({})
 
 # Route for getting hardware information
-@app.route('/get_hw_info', methods=['POST'])
+@app.post('/get_hw_info')
 def get_hw_info():
     # Extract data from request
 
@@ -217,7 +234,7 @@ def get_hw_info():
     return jsonify({})
 
 # Route for checking out hardware
-@app.route('/check_out', methods=['POST'])
+@app.post('/check_out')
 def check_out():
     # Extract data from request
 
@@ -231,7 +248,7 @@ def check_out():
     return jsonify({})
 
 # Route for checking in hardware
-@app.route('/check_in', methods=['POST'])
+@app.post('/check_in')
 def check_in():
     # Extract data from request
 
@@ -245,7 +262,7 @@ def check_in():
     return jsonify({})
 
 # Route for creating a new hardware set
-@app.route('/create_hardware_set', methods=['POST'])
+@app.post('/create_hardware_set')
 def create_hardware_set():
     # Extract data from request
 
@@ -259,7 +276,7 @@ def create_hardware_set():
     return jsonify({})
 
 # Route for checking the inventory of projects
-@app.route('/api/inventory', methods=['GET'])
+@app.get('/api/inventory')
 def check_inventory():
     # Connect to MongoDB
 
@@ -270,7 +287,11 @@ def check_inventory():
     # Return a JSON response
     return jsonify({})
 
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the backend!"}
+
 # Main entry point for the application
 if __name__ == '__main__':
-    app.run(port=8001)
+    app = FastAPI()
 
