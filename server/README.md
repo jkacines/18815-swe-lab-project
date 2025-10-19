@@ -1,0 +1,7 @@
+Linux
+run setup.sh to setup a virtual environment with all needed python packages
+run run.sh to launch the "server" locally
+
+Windows
+run setup.ps1 to setup a virtual environment with all needed python packages
+run run.ps1 to launch the "server" locally
