@@ -3,6 +3,7 @@ from bson.objectid import ObjectId
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
+import os
 
 # Import custom modules for database interactions
 import usersDatabase as usersDB
@@ -10,7 +11,10 @@ import projectsDatabase as projectsDB
 import HWDatabase as hardwareDB
 
 # Define the MongoDB connection string
-MONGODB_SERVER = "mongodb://localhost:27017/"
+MONGOGB_URI = 'mongodb+srv://wenyuzhu02_db_user:wYwV18cDv3oKstfN@cluster0.bttopkt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
+MONGOGB_DATABASE = 'Cluster0'
+MONGOGB_COLLECTION_USER = 'user'
+MONGOGB_COLLECTION_HW = 'hw'
 
 # Initialize a new Flask web application
 app = Flask(__name__)
@@ -66,10 +70,12 @@ def login():
             }), 400
 
         # Connect to MongoDB
-        client = MongoClient(MONGODB_SERVER)
+        client = MongoClient(MONGOGB_URI)
+        db = client[MONGOGB_DATABASE]
+        collection = db[MONGOGB_COLLECTION_USER]
 
         # Attempt to log in the user
-        result = usersDB.login(client, username, password)
+        result = usersDB.login(collection, username, password)
         
         if result:
             return jsonify({
@@ -108,17 +114,19 @@ def register():
             }), 400
 
         # Connect to MongoDB
-        client = MongoClient(MONGODB_SERVER)
+        client = MongoClient(MONGOGB_URI)
+        db = client[MONGOGB_DATABASE]
+        collection = db[MONGOGB_COLLECTION_USER]
 
         # Check if username already exists
-        if usersDB.usernameExists(client, username):
+        if usersDB.usernameExists(collection, username):
             return jsonify({
                 'success': False,
                 'message': 'Username already exists'
             }), 400
 
         # Attempt to add the user
-        result = usersDB.addUser(client, username, password, email)
+        result = usersDB.addUser(collection, username, password, email)
         
         if result:
             return jsonify({
@@ -197,7 +205,7 @@ def create_project():
                 'message': 'Project name is required.'
             }), 400
 
-        client = MongoClient(MONGODB_SERVER)
+        client = MongoClient(MONGOGB_URI)        
         success = projectsDB.createProject(client, projectName, description, hwSets)
 
         if success:
@@ -222,7 +230,8 @@ def create_project():
 @app.route('/projects', methods=['GET'])
 def get_projects():
     try:
-        client = MongoClient(MONGODB_SERVER)
+        client = MongoClient(MONGOGB_URI)
+
         projects = projectsDB.getProjects(client)
         return jsonify({
             'success': True,
@@ -249,7 +258,8 @@ def add_project_user():
                 'message': 'Project name and username are required.'
             }), 400
 
-        client = MongoClient(MONGODB_SERVER)
+        client = MongoClient(MONGOGB_URI)
+        
         success = projectsDB.addProjectUser(client, projectName, username)
 
         if success:
@@ -286,7 +296,8 @@ def checkout_project_hw():
                 'message': 'Project name, hardware name, and quantity are required.'
             }), 400
 
-        client = MongoClient(MONGODB_SERVER)
+        client = MongoClient(MONGOGB_URI)
+        
         success = projectsDB.checkOutHW(client, projectName, hwName, qty)
 
         if success:
@@ -324,7 +335,8 @@ def checkin_project_hw():
                 'message': 'Project name, hardware name, and quantity are required.'
             }), 400
 
-        client = MongoClient(MONGODB_SERVER)
+        client = MongoClient(MONGOGB_URI)
+        
         success = projectsDB.checkInHW(client, projectName, hwName, qty)
 
         if success:
@@ -363,7 +375,8 @@ def create_hardware():
                 'message': 'Hardware name and capacity are required.'
             }), 400
 
-        client = MongoClient(MONGODB_SERVER)
+        client = MongoClient(MONGOGB_URI)
+
 
         success = hardwareDB.createHardwareSet(client, hwName, int(capacity))
         if success:
@@ -387,7 +400,8 @@ def create_hardware():
 @app.route('/hardware', methods=['GET'])
 def get_hardware():
     try:
-        client = MongoClient(MONGODB_SERVER)
+        client = MongoClient(MONGOGB_URI)
+        
         hw_list = hardwareDB.getAllHwSets(client)
         return jsonify({
             'success': True,
