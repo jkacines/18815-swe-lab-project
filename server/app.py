@@ -19,29 +19,57 @@ MONGODB_DATABASE_HW = 'Hardware'
 app = Flask(__name__)
 CORS(app)
 
-# Route for the main page (Work in progress)
+# Route for the main page (Untested)
 @app.route('/main')
 def mainPage():
     # Extract data from request
+    data = request.get_json()
+    username = data.get('username')
 
     # Connect to MongoDB
+    with MongoClient(MONGODB_URI) as client:
+        db = client[MONGODB_DATABASE_USER]
 
-    # Fetch user projects using the usersDB module
+        # Fetch user projects using the usersDB module
+        userProjects = usersDB.getUserProjectsList(db, username)
+        return jsonify({
+            'success': True,
+            'projects': userProjects
+        }), 200
+
+
 
     # Close the MongoDB connection
 
     # Return a JSON response
     return jsonify({})
 
-# Route for joining a project
+# Route for joining a project (Untested)
 @app.route('/join_project', methods=['POST'])
 def join_project():
     # Extract data from request
+    data = request.get_json()
+    username = data.get('username')
+    projectId = data.get('projectId')
+
     # Expected: username, projectId
 
     # Connect to MongoDB
+    with MongoClient(MONGODB_URI) as client:
+        # Attempt to join the project using the usersDB module
+        db = client[MONGODB_DATABASE_USER]
+        successful = usersDB.joinProject(db, username, projectId)
+        if successful:
+            return jsonify({
+                'success': True,
+                'message': f'User {username} successfully joined project {projectId}.'
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to join project. User may already be a member or does not exist.'
+            }), 400
 
-    # Attempt to join the project using the usersDB module
 
     # Close the MongoDB connection
 
@@ -143,20 +171,41 @@ def register():
             'message': f'Registration error: {str(e)}'
         }), 500
 
-# Route for getting the list of user projects
+# Route for getting the list of user projects (Untested)
 @app.route('/get_user_projects_list', methods=['POST'])
 def get_user_projects_list():
-    # Extract data from request
-    # Expected: username
+    try:
+        # Extract data from request
+        # Expected: username
+        data = request.get_json()
+        username = data.get('username')
+        # Connect to MongoDB
+        with MongoClient(MONGODB_URI) as client:
+            db = client[MONGODB_DATABASE_USER]
+            # Fetch the user's projects using the usersDB module
 
-    # Connect to MongoDB
+            projects = usersDB.getUserProjectsList(db, username)
 
-    # Fetch the user's projects using the usersDB module
+            # Close the MongoDB connection
 
-    # Close the MongoDB connection
+            # Return a JSON response
+            if projects != []:
+                return jsonify({
+                    'success': True,
+                    'projects': projects
+                }), 200
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'User not found or has no projects'
+                }), 400
 
-    # Return a JSON response
-    return jsonify({})
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error retrieving user projects: {str(e)}'
+        }), 500
 
 # Route for getting project information
 @app.route('/get_project_info', methods=['POST'])

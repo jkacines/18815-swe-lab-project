@@ -99,12 +99,24 @@ def usernameExists(db, username):
         return False
 
 # Function to add a user to a project
-def joinProject(client, username, projectId):
+def joinProject(db, username, projectId):
     # Add a user to a specified project
-    pass
+    existing = queryUser(db, username)
+    if existing:
+        if projectId not in existing['projects']:
+            existing['projects'].append(projectId)
+            db.users.update_one(
+                {'username': username},
+                {'$set': {'projects': existing['projects']}}
+            )
+            return True
+    return False
 
 # Function to get the list of projects for a user
-def getUserProjectsList(client, username):
+def getUserProjectsList(db, username):
     # Get and return the list of projects a user is part of
-    pass
-
+    existing = queryUser(db, username)
+    if existing:
+        return existing['projects']
+    else:
+        return []
