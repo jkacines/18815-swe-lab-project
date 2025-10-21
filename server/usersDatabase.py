@@ -24,7 +24,7 @@ class UserLogin(BaseModel):
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Function to add a new user (registration)
-async def addUser(coll, username, password, email=None):
+def addUser(db, username, password, email=None):
     # Add a new user to the database
     # Returns success status and message
 
@@ -38,7 +38,7 @@ async def addUser(coll, username, password, email=None):
 
     try:
         # Check if user already exists
-        existing = await usernameExists(coll, user.username)
+        existing = usernameExists(db, user.username)
         if existing:
             return False
         
@@ -46,7 +46,7 @@ async def addUser(coll, username, password, email=None):
         hashed_pw = pwd_context.hash(user.password)
         user_model_dump = user.model_dump()
         user_model_dump["password"] = hashed_pw
-        await coll.users.insert_one(user_model_dump)
+        db.users.insert_one(user_model_dump)
         return True
     
     except Exception as e:
@@ -54,13 +54,13 @@ async def addUser(coll, username, password, email=None):
         return False
 
 # Helper function to query a user by username
-async def queryUser(coll, username):
+def queryUser(db, username):
     # Query and return a user from the database
-    existing = await coll.users.find_one({"username": username})
+    existing = db.users.find_one({"username": username})
     return existing
 
 # Function to log in a user
-async def login(coll, username, password, email=None):
+def login(db, username, password, email=None):
     # Authenticate a user and return login status
     # Returns user data if successful
 
@@ -74,7 +74,7 @@ async def login(coll, username, password, email=None):
 
     try:
         # Check database for user
-        existing = await queryUser(coll, user.username)
+        existing = queryUser(db, user.username)
         if not existing or not pwd_context.verify(user.password, existing["password"]):
             return False
         else:
@@ -85,12 +85,12 @@ async def login(coll, username, password, email=None):
         return False
 
 # Function to check if username already exists
-async def usernameExists(coll, username):
+def usernameExists(db, username):
     # Check if username is already taken
     # Returns True if exists, False if available
     try:
         # Check in-memory storage
-        existing = await coll.users.find_one({"username": username})
+        existing = db.users.find_one({"username": username})
         if existing:
             return True
         return False
