@@ -4,10 +4,9 @@ import {
   Box,
   Typography,
   List,
-  ListItem,
-  ListItemText,
-  Divider,
+  Paper,
 } from "@mui/material";
+import BuildIcon from "@mui/icons-material/Build";
 import "./SidebarPanel.css";
 
 function UserHW({ username, userHardwareData }) {
@@ -33,62 +32,67 @@ function UserHW({ username, userHardwareData }) {
         <Typography variant="body2" color="text.secondary">
           Loading...
         </Typography>
+      ) : data.projects?.length > 0 ? (
+        <List dense sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          {data.projects.map((proj, i) => (
+            <Paper
+              key={i}
+              elevation={0}
+              sx={{
+                p: 1.5,
+                borderRadius: "8px",
+                border: "1px solid #e2e8f0",
+                backgroundColor: "#f9fafb",
+              }}
+            >
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  mb: 0.5,
+                }}
+              >
+                <BuildIcon
+                  fontSize="small"
+                  color="action"
+                  sx={{ mr: 1, opacity: 0.8 }}
+                />
+                {proj.projectName}
+              </Typography>
+
+              {Object.keys(proj.hwUsage || {}).length > 0 ? (
+                <ul
+                  style={{
+                    margin: 0,
+                    paddingLeft: "1.4rem",
+                    color: "#4A5568",
+                    fontSize: "0.9rem",
+                  }}
+                >
+                  {Object.entries(proj.hwUsage).map(([hw, qty]) => (
+                    <li key={hw}>
+                      <strong>{hw}</strong>: {qty}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ fontStyle: "italic", pl: 3 }}
+                >
+                  No hardware checked out.
+                </Typography>
+              )}
+            </Paper>
+          ))}
+        </List>
       ) : (
-        <>
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mt: 1, mb: 0.5 }}>
-            Projects
-          </Typography>
-
-          {data.projects?.length > 0 ? (
-            <List dense>
-              {data.projects.map((proj, i) => (
-                <React.Fragment key={i}>
-                  <ListItem disableGutters>
-                    <ListItemText
-                      primary={proj.projectName}
-                      secondary={
-                        Object.keys(proj.hwUsage || {}).length > 0 ? (
-                          <ul style={{ margin: 0, paddingLeft: "1rem" }}>
-                            {Object.entries(proj.hwUsage).map(([hw, qty]) => (
-                              <li key={hw}>
-                                {hw}: {qty}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <em>No hardware checked out</em>
-                        )
-                      }
-                    />
-                  </ListItem>
-                  {i < data.projects.length - 1 && <Divider />}
-                </React.Fragment>
-              ))}
-            </List>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              You’re not part of any projects yet.
-            </Typography>
-          )}
-
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, mt: 2, mb: 0.5 }}>
-            Total Hardware Checked Out
-          </Typography>
-
-          {data.totalHW && Object.keys(data.totalHW).length > 0 ? (
-            <ul style={{ margin: 0, paddingLeft: "1rem" }}>
-              {Object.entries(data.totalHW).map(([hw, qty]) => (
-                <li key={hw}>
-                  {hw}: {qty}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <Typography variant="body2" color="text.secondary">
-              You currently have no hardware checked out.
-            </Typography>
-          )}
-        </>
+        <Typography variant="body2" color="text.secondary">
+          You’re not part of any projects yet.
+        </Typography>
       )}
     </Box>
   );

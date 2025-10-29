@@ -21,6 +21,37 @@ const MyUserPortal = ({ response, onLogout }) => {
   const [projects, setProjects] = useState([]);
   const [hardware, setHardware] = useState([]);
 
+  const computeUserHardwareData = (usernameObj, projects) => {
+    // Normalize username if it's an object
+    const username =
+      typeof usernameObj === "object" ? usernameObj.username : usernameObj;
+
+    const result = { projects: [], totalHW: {} };
+    if (!username || !projects) return result;
+
+    projects.forEach((proj) => {
+      if (proj.users.includes(username)) {
+        const hwUsage = {};
+        Object.entries(proj.hwSets).forEach(([hwName, hwInfo]) => {
+          const user_usage = hwInfo.user_usage?.[username] || 0;
+          if (user_usage > 0) {
+            hwUsage[hwName] = user_usage;
+            result.totalHW[hwName] =
+              (result.totalHW[hwName] || 0) + user_usage;
+          }
+        });
+        result.projects.push({
+          projectName: proj.projectName,
+          hwUsage,
+        });
+      }
+    });
+
+    return result;
+  };
+
+  const userHardwareData = computeUserHardwareData(response.user, projects);
+
   const fetchProjects = async () => {
     try {
       const res = await axios.get("http://localhost:8001/projects");
@@ -103,7 +134,7 @@ const MyUserPortal = ({ response, onLogout }) => {
                 setShowMyProjects={setShowMyProjects}
               />
               <ProjectCreate hardware={hardware} onProjectUpdated={handleProjectUpdated} />
-              <UserHW username={response.user} />
+              <UserHW username={response.user} userHardwareData={userHardwareData} />
             </>
           ) : (
             <HWCreate onHardwareUpdated={fetchHardware} />
