@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { Button, TextField, Checkbox, FormControlLabel } from "@mui/material";
+import { Button, TextField, Checkbox } from "@mui/material";
 import HWSetStatus from "./HWSetStatus";
 import UserBanner from "./UserBanner";
 
@@ -11,7 +11,6 @@ function ProjectCard({ name, users = [], hwSets = {}, username, onUserJoined }) 
   const [selectedHW, setSelectedHW] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // ✅ safely check membership (handles both object and string usernames)
   const isMember = users.some(
     (u) =>
       (typeof u === "object" ? u.username : u) ===
@@ -20,8 +19,7 @@ function ProjectCard({ name, users = [], hwSets = {}, username, onUserJoined }) 
 
   // --- JOIN PROJECT ---
   const handleJoin = async () => {
-    const uname =
-      typeof username === "object" ? username.username : username;
+    const uname = typeof username === "object" ? username.username : username;
 
     if (!uname) {
       setMessage("❌ Missing username — please log in again.");
@@ -53,6 +51,12 @@ function ProjectCard({ name, users = [], hwSets = {}, username, onUserJoined }) 
 
   // --- CHECK IN / OUT ---
   const handleHardwareAction = async (action) => {
+    const uname = typeof username === "object" ? username.username : username;
+
+    if (!uname) {
+      setMessage("❌ Missing username — please log in again.");
+      return;
+    }
     if (!selectedHW) {
       setMessage("❌ Please select a hardware set first.");
       return;
@@ -71,7 +75,9 @@ function ProjectCard({ name, users = [], hwSets = {}, username, onUserJoined }) 
         : "http://localhost:8001/projects/checkout";
 
     try {
+      // ✅ Send username along with projectName, hwName, qty
       const res = await axios.post(endpoint, {
+        username: uname,
         projectName: name,
         hwName: selectedHW,
         qty: Number(qty),
@@ -79,7 +85,7 @@ function ProjectCard({ name, users = [], hwSets = {}, username, onUserJoined }) 
 
       if (res.data.success) {
         setMessage(
-          `✅ ${action === "checkin" ? "Checked in" : "Checked out"} ${qty} from ${selectedHW}`
+          `✅ User "${uname}" successfully ${action === "checkin" ? "checked in" : "checked out"} ${qty} of ${selectedHW}`
         );
         if (onUserJoined) onUserJoined();
         setQty("");

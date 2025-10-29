@@ -6,6 +6,7 @@ import ProjectCreate from "../components/ProjectCreate";
 import HWCreate from "../components/HWCreate";
 import Hardware from "../components/Hardware";
 import PageHeader from "../components/PageHeader";
+import UserHW from "../components/UserHW";
 import { ButtonGroup, Button } from "@mui/material";
 
 const MyUserPortal = ({ response, onLogout }) => {
@@ -102,6 +103,7 @@ const MyUserPortal = ({ response, onLogout }) => {
                 setShowMyProjects={setShowMyProjects}
               />
               <ProjectCreate hardware={hardware} onProjectUpdated={handleProjectUpdated} />
+              <UserHW username={response.user} />
             </>
           ) : (
             <HWCreate onHardwareUpdated={fetchHardware} />

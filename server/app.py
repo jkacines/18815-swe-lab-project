@@ -331,28 +331,28 @@ def add_project_user():
 def checkout_project_hw():
     try:
         data = request.get_json()
+        username = data.get('username')
         projectName = data.get('projectName')
         hwName = data.get('hwName')
         qty = data.get('qty')
 
-        if not projectName or not hwName or qty is None:
+        if not username or not projectName or not hwName or qty is None:
             return jsonify({
                 'success': False,
-                'message': 'Project name, hardware name, and quantity are required.'
+                'message': 'Username, project name, hardware name, and quantity are required.'
             }), 400
 
-        
         with MongoClient(MONGODB_URI) as client:
-            success = projectsDB.checkOutHW(client, projectName, hwName, qty)
+            success = projectsDB.checkOutHW(client, projectName, hwName, qty, username=username)
             if success:
                 return jsonify({
                     'success': True,
-                    'message': f'Checked out {qty} of "{hwName}" from project "{projectName}".'
+                    'message': f'User "{username}" checked out {qty} of "{hwName}" from project "{projectName}".'
                 }), 200
             else:
                 return jsonify({
                     'success': False,
-                    'message': f'Failed to check out hardware "{hwName}" from project "{projectName}".'
+                    'message': f'User "{username}" failed to check out hardware "{hwName}" from project "{projectName}".'
                 }), 400
 
     except Exception as e:
@@ -369,34 +369,36 @@ def checkout_project_hw():
 def checkin_project_hw():
     try:
         data = request.get_json()
+        username = data.get('username')
         projectName = data.get('projectName')
         hwName = data.get('hwName')
         qty = data.get('qty')
 
-        if not projectName or not hwName or qty is None:
+        if not username or not projectName or not hwName or qty is None:
             return jsonify({
                 'success': False,
-                'message': 'Project name, hardware name, and quantity are required.'
+                'message': 'Username, project name, hardware name, and quantity are required.'
             }), 400
 
         with MongoClient(MONGODB_URI) as client:
-            success = projectsDB.checkInHW(client, projectName, hwName, qty)
+            success = projectsDB.checkInHW(client, projectName, hwName, qty, username=username)
             if success:
                 return jsonify({
                     'success': True,
-                    'message': f'Checked in {qty} of "{hwName}" to project "{projectName}".'
+                    'message': f'User "{username}" checked in {qty} of "{hwName}" to project "{projectName}".'
                 }), 200
             else:
                 return jsonify({
                     'success': False,
-                'message': f'Failed to check in hardware "{hwName}" to project "{projectName}".'
-            }), 400
+                    'message': f'User "{username}" failed to check in hardware "{hwName}" to project "{projectName}".'
+                }), 400
 
     except Exception as e:
         return jsonify({
             'success': False,
             'message': f'Error during hardware check-in: {str(e)}'
         }), 500
+
 
 
 ############################################################
