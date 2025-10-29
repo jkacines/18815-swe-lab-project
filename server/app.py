@@ -343,17 +343,20 @@ def checkout_project_hw():
             }), 400
 
         with MongoClient(MONGODB_URI) as client:
-            success = projectsDB.checkOutHW(client, projectName, hwName, qty, username=username)
+            success, processed, err = projectsDB.checkOutHW(client, projectName, hwName, qty, username=username)
             if success:
                 return jsonify({
                     'success': True,
-                    'message': f'User "{username}" checked out {qty} of "{hwName}" from project "{projectName}".'
+                    'processedQty': processed,
+                    'message': f'User "{username}" checked out {processed} of "{hwName}" from project "{projectName}".'
                 }), 200
             else:
                 return jsonify({
                     'success': False,
-                    'message': f'User "{username}" failed to check out hardware "{hwName}" from project "{projectName}".'
+                    'processedQty': 0,
+                    'message': err or f'Failed to check out hardware "{hwName}" from project "{projectName}".'
                 }), 400
+
 
     except Exception as e:
         return jsonify({
@@ -381,17 +384,20 @@ def checkin_project_hw():
             }), 400
 
         with MongoClient(MONGODB_URI) as client:
-            success = projectsDB.checkInHW(client, projectName, hwName, qty, username=username)
+            success, processed, err = projectsDB.checkInHW(client, projectName, hwName, qty, username=username)
             if success:
                 return jsonify({
                     'success': True,
-                    'message': f'User "{username}" checked in {qty} of "{hwName}" to project "{projectName}".'
+                    'processedQty': processed,
+                    'message': f'User "{username}" checked in {processed} of "{hwName}" to project "{projectName}".'
                 }), 200
             else:
                 return jsonify({
                     'success': False,
-                    'message': f'User "{username}" failed to check in hardware "{hwName}" to project "{projectName}".'
+                    'processedQty': 0,
+                    'message': err or f'Failed to check in hardware "{hwName}" to project "{projectName}".'
                 }), 400
+
 
     except Exception as e:
         return jsonify({

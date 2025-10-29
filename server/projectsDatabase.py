@@ -114,88 +114,60 @@ def addProjectUser(client, projectName, username):
 # ============================================================
 # Check out hardware within a project
 # ============================================================
+# Return signature: (success: bool, processed_qty: int, error_msg: str | None)
+
 def checkOutHW(client, projectName, hwName, qty, username=None):
-    """
-    Check out hardware from a project's reserved pool for a specific user.
-    Only affects the project's 'used' count and per-user tracking.
-    """
     try:
         for p in _projects_storage:
             if p['projectName'] == projectName:
-                # Ensure user is in the project
                 if username not in p['users']:
-                    print(f"⚠️ User '{username}' is not part of project '{projectName}'")
-                    return False
-
+                    return (False, 0, f"User '{username}' is not part of project '{projectName}'")
                 if hwName not in p['hwSets']:
-                    print(f"⚠️ '{hwName}' not found in project '{projectName}'")
-                    return False
+                    return (False, 0, f"'{hwName}' not found in project '{projectName}'")
 
                 hw_entry = p['hwSets'][hwName]
                 available = hw_entry['capacity'] - hw_entry['used']
-
                 if qty > available:
-                    print(f"⚠️ Not enough '{hwName}' available. Requested {qty}, only {available} left.")
-                    return False
+                    return (False, 0, f"Not enough '{hwName}' available. Requested {qty}, only {available} left.")
 
-                # Update totals
                 hw_entry['used'] += qty
                 hw_entry.setdefault('user_usage', {})
                 hw_entry['user_usage'][username] = hw_entry['user_usage'].get(username, 0) + qty
+                return (True, qty, None)
 
-                print(f"✅ User '{username}' checked out {qty} of '{hwName}' from project '{projectName}'")
-                return True
-
-        print(f"⚠️ Project '{projectName}' not found.")
-        return False
+        return (False, 0, f"Project '{projectName}' not found.")
     except Exception as e:
-        print(f"❌ Error checking out HW: {e}")
-        return False
-
-
+        return (False, 0, f"Error checking out HW: {e}")
 
 # ============================================================
 # Check in hardware within a project
 # ============================================================
 def checkInHW(client, projectName, hwName, qty, username=None):
-    """
-    Check in hardware to a project's reserved pool for a specific user.
-    Ensures the user actually has that much checked out.
-    """
     try:
         for p in _projects_storage:
             if p['projectName'] == projectName:
-                # Ensure user is in the project
                 if username not in p['users']:
-                    print(f"⚠️ User '{username}' is not part of project '{projectName}'")
-                    return False
-
+                    return (False, 0, f"User '{username}' is not part of project '{projectName}'")
                 if hwName not in p['hwSets']:
-                    print(f"⚠️ '{hwName}' not found in project '{projectName}'")
-                    return False
+                    return (False, 0, f"'{hwName}' not found in project '{projectName}'")
 
                 hw_entry = p['hwSets'][hwName]
                 hw_entry.setdefault('user_usage', {})
-
                 user_checked_out = hw_entry['user_usage'].get(username, 0)
+
                 if user_checked_out <= 0:
-                    print(f"⚠️ User '{username}' has no '{hwName}' checked out.")
-                    return False
+                    return (False, 0, f"User '{username}' has no '{hwName}' checked out.")
 
-                # Limit to what they actually have
-                qty = min(qty, user_checked_out)
+                # Cap to what the user actually has
+                processed = min(qty, user_checked_out)
 
-                hw_entry['used'] -= qty
-                hw_entry['user_usage'][username] -= qty
-
+                hw_entry['used'] -= processed
+                hw_entry['user_usage'][username] = user_checked_out - processed
                 if hw_entry['user_usage'][username] <= 0:
-                    del hw_entry['user_usage'][username]  # cleanup
+                    del hw_entry['user_usage'][username]
 
-                print(f"✅ User '{username}' checked in {qty} of '{hwName}' to project '{projectName}'")
-                return True
+                return (True, processed, None)
 
-        print(f"⚠️ Project '{projectName}' not found.")
-        return False
+        return (False, 0, f"Project '{projectName}' not found.")
     except Exception as e:
-        print(f"❌ Error checking in HW: {e}")
-        return False
+        return (False, 0, f"Error checking in HW: {e}")
