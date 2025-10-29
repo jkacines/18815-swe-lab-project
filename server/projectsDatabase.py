@@ -12,7 +12,7 @@ Project = {
     'description': str,
     'hwSets': {                       # per-project reserved hardware pool
         'HWSet1': {'used': 0, 'capacity': 100},  # reserved 100, using 0
-        'HWSet2': {'used': 20, 'capacity': 50}
+        'HWSet2': {'used': 20, 'capacity': 50, 'user_usage': {'user1':'20'}}
     },
     'users': [ 'jason', 'alice' ]
 }
