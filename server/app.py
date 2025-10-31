@@ -3,6 +3,7 @@ from bson.objectid import ObjectId
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
+import os
 
 # Import custom modules for database interactions
 import usersDatabase as usersDB
@@ -10,35 +11,65 @@ import projectsDatabase as projectsDB
 import HWDatabase as hardwareDB
 
 # Define the MongoDB connection string
-MONGODB_SERVER = "mongodb://localhost:27017/"
+MONGODB_URI = 'mongodb+srv://wenyuzhu02_db_user:wYwV18cDv3oKstfN@cluster0.bttopkt.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
+MONGODB_DATABASE_USER = 'User'
+MONGODB_DATABASE_HW = 'Hardware'
 
 # Initialize a new Flask web application
 app = Flask(__name__)
 CORS(app)
 
-# Route for the main page (Work in progress)
+# Route for the main page (Untested)
 @app.route('/main')
 def mainPage():
     # Extract data from request
+    data = request.get_json()
+    username = data.get('username')
 
     # Connect to MongoDB
+    with MongoClient(MONGODB_URI) as client:
+        db = client[MONGODB_DATABASE_USER]
 
-    # Fetch user projects using the usersDB module
+        # Fetch user projects using the usersDB module
+        userProjects = usersDB.getUserProjectsList(db, username)
+        return jsonify({
+            'success': True,
+            'projects': userProjects
+        }), 200
+
+
 
     # Close the MongoDB connection
 
     # Return a JSON response
     return jsonify({})
 
-# Route for joining a project
+# Route for joining a project (Untested)
 @app.route('/join_project', methods=['POST'])
 def join_project():
     # Extract data from request
+    data = request.get_json()
+    username = data.get('username')
+    projectId = data.get('projectId')
+
     # Expected: username, projectId
 
     # Connect to MongoDB
+    with MongoClient(MONGODB_URI) as client:
+        # Attempt to join the project using the usersDB module
+        db = client[MONGODB_DATABASE_USER]
+        successful = usersDB.joinProject(db, username, projectId)
+        if successful:
+            return jsonify({
+                'success': True,
+                'message': f'User {username} successfully joined project {projectId}.'
+            }), 200
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Failed to join project. User may already be a member or does not exist.'
+            }), 400
 
-    # Attempt to join the project using the usersDB module
 
     # Close the MongoDB connection
 
@@ -66,22 +97,23 @@ def login():
             }), 400
 
         # Connect to MongoDB
-        client = MongoClient(MONGODB_SERVER)
+        with MongoClient(MONGODB_URI) as client:
+            db = client[MONGODB_DATABASE_USER]
 
-        # Attempt to log in the user
-        result = usersDB.login(client, username, password)
-        
-        if result:
-            return jsonify({
-                'success': True,
-                'message': 'Login successful',
-                'user': {'username': username}
-            }), 200
-        else:
-            return jsonify({
-                'success': False,
-                'message': 'Invalid credentials'
-            }), 401
+            # Attempt to log in the user
+            result = usersDB.login(db, username, password)
+
+            if result:
+                return jsonify({
+                    'success': True,
+                    'message': 'Login successful',
+                    'user': {'username': username}
+                }), 200
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'Invalid credentials'
+                }), 401
 
     except Exception as e:
         return jsonify({
@@ -108,28 +140,30 @@ def register():
             }), 400
 
         # Connect to MongoDB
-        client = MongoClient(MONGODB_SERVER)
+        with MongoClient(MONGODB_URI) as client:
+            db = client[MONGODB_DATABASE_USER]
 
-        # Check if username already exists
-        if usersDB.usernameExists(client, username):
-            return jsonify({
-                'success': False,
-                'message': 'Username already exists'
-            }), 400
+            # Check if username already exists
+            existing = usersDB.usernameExists(db, username)
+            if existing:
+                return jsonify({
+                    'success': False,
+                    'message': 'Username already exists'
+                }), 400
 
-        # Attempt to add the user
-        result = usersDB.addUser(client, username, password, email)
-        
-        if result:
-            return jsonify({
-                'success': True,
-                'message': 'User registered successfully'
-            }), 200
-        else:
-            return jsonify({
-                'success': False,
-                'message': 'Failed to register user'
-            }), 500
+            # Attempt to add the user
+            result = usersDB.addUser(db, username, password, email)
+
+            if result:
+                return jsonify({
+                    'success': True,
+                    'message': 'User registered successfully'
+                }), 200
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'Failed to register user'
+                }), 500
 
     except Exception as e:
         return jsonify({
@@ -137,20 +171,41 @@ def register():
             'message': f'Registration error: {str(e)}'
         }), 500
 
-# Route for getting the list of user projects
+# Route for getting the list of user projects (Untested)
 @app.route('/get_user_projects_list', methods=['POST'])
 def get_user_projects_list():
-    # Extract data from request
-    # Expected: username
+    try:
+        # Extract data from request
+        # Expected: username
+        data = request.get_json()
+        username = data.get('username')
+        # Connect to MongoDB
+        with MongoClient(MONGODB_URI) as client:
+            db = client[MONGODB_DATABASE_USER]
+            # Fetch the user's projects using the usersDB module
 
-    # Connect to MongoDB
+            projects = usersDB.getUserProjectsList(db, username)
 
-    # Fetch the user's projects using the usersDB module
+            # Close the MongoDB connection
 
-    # Close the MongoDB connection
+            # Return a JSON response
+            if projects != []:
+                return jsonify({
+                    'success': True,
+                    'projects': projects
+                }), 200
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'User not found or has no projects'
+                }), 400
 
-    # Return a JSON response
-    return jsonify({})
+
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Error retrieving user projects: {str(e)}'
+        }), 500
 
 # Route for getting project information
 @app.route('/get_project_info', methods=['POST'])
@@ -197,19 +252,19 @@ def create_project():
                 'message': 'Project name is required.'
             }), 400
 
-        client = MongoClient(MONGODB_SERVER)
-        success = projectsDB.createProject(client, projectName, description, hwSets)
-
-        if success:
-            return jsonify({
-                'success': True,
-                'message': f'Project "{projectName}" created successfully.'
-            }), 200
-        else:
-            return jsonify({
-                'success': False,
-                'message': f'Failed to create project "{projectName}". It may already exist or hardware allocation failed.'
-            }), 400
+        with MongoClient(MONGODB_URI) as client:
+            success = projectsDB.createProject(client, projectName, description, hwSets)
+    
+            if success:
+                return jsonify({
+                    'success': True,
+                    'message': f'Project "{projectName}" created successfully.'
+                }), 200
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': f'Failed to create project "{projectName}". It may already exist or hardware allocation failed.'
+                }), 400
 
     except Exception as e:
         return jsonify({
@@ -222,12 +277,12 @@ def create_project():
 @app.route('/projects', methods=['GET'])
 def get_projects():
     try:
-        client = MongoClient(MONGODB_SERVER)
-        projects = projectsDB.getProjects(client)
-        return jsonify({
-            'success': True,
-            'projects': projects
-        }), 200
+        with MongoClient(MONGODB_URI) as client:
+            projects = projectsDB.getProjects(client)
+            return jsonify({
+                'success': True,
+                'projects': projects
+            }), 200
     except Exception as e:
         return jsonify({
             'success': False,
@@ -249,19 +304,19 @@ def add_project_user():
                 'message': 'Project name and username are required.'
             }), 400
 
-        client = MongoClient(MONGODB_SERVER)
-        success = projectsDB.addProjectUser(client, projectName, username)
+        with MongoClient(MONGODB_URI) as client:
+            success = projectsDB.addProjectUser(client, projectName, username)
 
-        if success:
-            return jsonify({
-                'success': True,
-                'message': f'User "{username}" added to project "{projectName}".'
-            }), 200
-        else:
-            return jsonify({
-                'success': False,
-                'message': f'Failed to add user "{username}" to project "{projectName}".'
-            }), 400
+            if success:
+                return jsonify({
+                    'success': True,
+                    'message': f'User "{username}" added to project "{projectName}".'
+                }), 200
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': f'Failed to add user "{username}" to project "{projectName}".'
+                }), 400
 
     except Exception as e:
         return jsonify({
@@ -276,29 +331,32 @@ def add_project_user():
 def checkout_project_hw():
     try:
         data = request.get_json()
+        username = data.get('username')
         projectName = data.get('projectName')
         hwName = data.get('hwName')
         qty = data.get('qty')
 
-        if not projectName or not hwName or qty is None:
+        if not username or not projectName or not hwName or qty is None:
             return jsonify({
                 'success': False,
-                'message': 'Project name, hardware name, and quantity are required.'
+                'message': 'Username, project name, hardware name, and quantity are required.'
             }), 400
 
-        client = MongoClient(MONGODB_SERVER)
-        success = projectsDB.checkOutHW(client, projectName, hwName, qty)
+        with MongoClient(MONGODB_URI) as client:
+            success, processed, err = projectsDB.checkOutHW(client, projectName, hwName, qty, username=username)
+            if success:
+                return jsonify({
+                    'success': True,
+                    'processedQty': processed,
+                    'message': f'User "{username}" checked out {processed} of "{hwName}" from project "{projectName}".'
+                }), 200
+            else:
+                return jsonify({
+                    'success': False,
+                    'processedQty': 0,
+                    'message': err or f'Failed to check out hardware "{hwName}" from project "{projectName}".'
+                }), 400
 
-        if success:
-            return jsonify({
-                'success': True,
-                'message': f'Checked out {qty} of "{hwName}" from project "{projectName}".'
-            }), 200
-        else:
-            return jsonify({
-                'success': False,
-                'message': f'Failed to check out hardware "{hwName}" from project "{projectName}".'
-            }), 400
 
     except Exception as e:
         return jsonify({
@@ -314,35 +372,39 @@ def checkout_project_hw():
 def checkin_project_hw():
     try:
         data = request.get_json()
+        username = data.get('username')
         projectName = data.get('projectName')
         hwName = data.get('hwName')
         qty = data.get('qty')
 
-        if not projectName or not hwName or qty is None:
+        if not username or not projectName or not hwName or qty is None:
             return jsonify({
                 'success': False,
-                'message': 'Project name, hardware name, and quantity are required.'
+                'message': 'Username, project name, hardware name, and quantity are required.'
             }), 400
 
-        client = MongoClient(MONGODB_SERVER)
-        success = projectsDB.checkInHW(client, projectName, hwName, qty)
+        with MongoClient(MONGODB_URI) as client:
+            success, processed, err = projectsDB.checkInHW(client, projectName, hwName, qty, username=username)
+            if success:
+                return jsonify({
+                    'success': True,
+                    'processedQty': processed,
+                    'message': f'User "{username}" checked in {processed} of "{hwName}" to project "{projectName}".'
+                }), 200
+            else:
+                return jsonify({
+                    'success': False,
+                    'processedQty': 0,
+                    'message': err or f'Failed to check in hardware "{hwName}" to project "{projectName}".'
+                }), 400
 
-        if success:
-            return jsonify({
-                'success': True,
-                'message': f'Checked in {qty} of "{hwName}" to project "{projectName}".'
-            }), 200
-        else:
-            return jsonify({
-                'success': False,
-                'message': f'Failed to check in hardware "{hwName}" to project "{projectName}".'
-            }), 400
 
     except Exception as e:
         return jsonify({
             'success': False,
             'message': f'Error during hardware check-in: {str(e)}'
         }), 500
+
 
 
 ############################################################
@@ -363,19 +425,18 @@ def create_hardware():
                 'message': 'Hardware name and capacity are required.'
             }), 400
 
-        client = MongoClient(MONGODB_SERVER)
-
-        success = hardwareDB.createHardwareSet(client, hwName, int(capacity))
-        if success:
-            return jsonify({
-                'success': True,
-                'message': f'Hardware set "{hwName}" created successfully.'
-            }), 200
-        else:
-            return jsonify({
-                'success': False,
-                'message': f'Hardware set "{hwName}" already exists.'
-            }), 400
+        with MongoClient(MONGODB_URI) as client:
+            success = hardwareDB.createHardwareSet(client, hwName, int(capacity))
+            if success:
+                return jsonify({
+                    'success': True,
+                    'message': f'Hardware set "{hwName}" created successfully.'
+                }), 200
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': f'Hardware set "{hwName}" already exists.'
+                }), 400
 
     except Exception as e:
         return jsonify({
@@ -387,12 +448,12 @@ def create_hardware():
 @app.route('/hardware', methods=['GET'])
 def get_hardware():
     try:
-        client = MongoClient(MONGODB_SERVER)
-        hw_list = hardwareDB.getAllHwSets(client)
-        return jsonify({
-            'success': True,
-            'hardware': hw_list
-        }), 200
+        with MongoClient(MONGODB_URI) as client:         
+            hw_list = hardwareDB.getAllHwSets(client)
+            return jsonify({
+                'success': True,
+                'hardware': hw_list
+            }), 200
 
     except Exception as e:
         return jsonify({

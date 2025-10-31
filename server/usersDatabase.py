@@ -1,7 +1,9 @@
 # Import necessary libraries and modules
-from pymongo import MongoClient
-
 import projectsDatabase as projectsDB
+from pydantic import BaseModel
+from typing import Optional
+from passlib.hash import bcrypt
+from passlib.context import CryptContext
 
 '''
 Structure of User entry:
@@ -12,76 +14,109 @@ User = {
     'projects': [project1_ID, project2_ID, ...]
 }
 '''
+class UserLogin(BaseModel):
+    id: Optional[str] = None 
+    username: str
+    password: str
+    email: Optional[str] = None
+    projects: Optional[list] = []
 
-# In-memory storage for development (replace with MongoDB in production)
-_users_storage = []
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Function to add a new user (registration)
-def addUser(client, username, password, email=None):
+def addUser(db, username, password, email=None):
     # Add a new user to the database
     # Returns success status and message
+
+    # Create user document
+    user = UserLogin(
+        username=username,
+        password=password,
+        email=email,
+        projects=[]
+    )
+
     try:
         # Check if user already exists
-        for user in _users_storage:
-            if user['username'] == username:
-                return False
+        existing = usernameExists(db, user.username)
+        if existing:
+            return False
         
-        # Create user document
-        user_doc = {
-            'username': username,
-            'password': password,  # In production, this should be hashed
-            'email': email,
-            'projects': []
-        }
-        
-        # Add user to in-memory storage
-        _users_storage.append(user_doc)
-        print(f"User added: {username}")
+        # Hash User Password
+        hashed_pw = pwd_context.hash(user.password)
+        user_model_dump = user.model_dump()
+        user_model_dump["password"] = hashed_pw
+        db.users.insert_one(user_model_dump)
         return True
+    
     except Exception as e:
         print(f"Error adding user: {e}")
         return False
 
 # Helper function to query a user by username
-def __queryUser(client, username):
+def queryUser(db, username):
     # Query and return a user from the database
-    pass
+    existing = db.users.find_one({"username": username})
+    return existing
 
 # Function to log in a user
-def login(client, username, password):
+def login(db, username, password, email=None):
     # Authenticate a user and return login status
     # Returns user data if successful
+
+    # Create user document
+    user = UserLogin(
+        username=username,
+        password=password,
+        email=email,
+        projects=[]
+    )
+
     try:
-        # Check in-memory storage for user
-        for user in _users_storage:
-            if user['username'] == username and user['password'] == password:
-                return user
-        return None
+        # Check database for user
+        existing = queryUser(db, user.username)
+        if not existing or not pwd_context.verify(user.password, existing["password"]):
+            return False
+        else:
+            return True
+
     except Exception as e:
         print(f"Error during login: {e}")
-        return None
+        return False
 
 # Function to check if username already exists
-def usernameExists(client, username):
+def usernameExists(db, username):
     # Check if username is already taken
     # Returns True if exists, False if available
     try:
         # Check in-memory storage
-        for user in _users_storage:
-            if user['username'] == username:
-                return True
+        existing = db.users.find_one({"username": username})
+        if existing:
+            return True
         return False
     except Exception as e:
         print(f"Error checking username: {e}")
         return False
 
 # Function to add a user to a project
-def joinProject(client, username, projectId):
+def joinProject(db, username, projectId):
     # Add a user to a specified project
-    pass
+    existing = queryUser(db, username)
+    if existing:
+        if projectId not in existing['projects']:
+            existing['projects'].append(projectId)
+            db.users.update_one(
+                {'username': username},
+                {'$set': {'projects': existing['projects']}}
+            )
+            return True
+    return False
 
 # Function to get the list of projects for a user
-def getUserProjectsList(client, username):
+def getUserProjectsList(db, username):
     # Get and return the list of projects a user is part of
-    pass
-
+    existing = queryUser(db, username)
+    if existing:
+        return existing['projects']
+    else:
+        return []

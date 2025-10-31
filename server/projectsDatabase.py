@@ -1,7 +1,8 @@
 # projectsDatabase.py
 from pymongo import MongoClient
 import HWDatabase as HWDB
-
+from pydantic import BaseModel
+from typing import Optional, List, Dict, Any
 # In-memory project storage (replace with MongoDB for persistence)
 _projects_storage = []
 
@@ -12,12 +13,17 @@ Project = {
     'description': str,
     'hwSets': {                       # per-project reserved hardware pool
         'HWSet1': {'used': 0, 'capacity': 100},  # reserved 100, using 0
-        'HWSet2': {'used': 20, 'capacity': 50}
+        'HWSet2': {'used': 20, 'capacity': 50, 'user_usage': {'user1':'20'}}
     },
     'users': [ 'jason', 'alice' ]
 }
 '''
-
+class ProjectData(BaseModel):
+    id: Optional[str] = None 
+    projectName: str
+    description: str
+    hwSets: Dict[str, Any] = {}
+    users: List[str] = []
 
 # ============================================================
 # Create a new project
@@ -29,21 +35,20 @@ def createProject(client, projectName, description, hwSets_dict):
     """
     try:
         # Prevent duplicate project names
-        for p in _projects_storage:
-            if p['projectName'] == projectName:
-                print(f"⚠️ Project '{projectName}' already exists.")
-                return False
+        existing = client['Projects'].project.find_one({"projectName": projectName})
+        if existing:
+            return False
 
         hwSets = {}
 
         for hwName, reserve_amount in hwSets_dict.items():
             hw_info = HWDB.queryHardwareSet(client, hwName)
             if not hw_info:
-                print(f"⚠️ Hardware set '{hwName}' not found.")
+                print(f"Hardware set '{hwName}' not found.")
                 continue
 
-            capacity = hw_info.get('capacity', 0)
-            availability = hw_info.get('availability', 0)
+            capacity = hw_info['capacity']
+            availability = hw_info['availability']
 
             # Ensure enough global hardware is available
             if reserve_amount > availability:
@@ -61,19 +66,20 @@ def createProject(client, projectName, description, hwSets_dict):
             }
 
         # Build project document
-        project_doc = {
-            'projectName': projectName,
-            'description': description,
-            'hwSets': hwSets,
-            'users': []
-        }
+        project_doc = ProjectData(
+            projectName=projectName,
+            description=description,
+            hwSets=hwSets,
+            users=[]
+        )
 
-        _projects_storage.append(project_doc)
-        print(f"✅ Created project '{projectName}' with hardware: {hwSets}")
+        proj_model_dump = project_doc.model_dump()
+        client['Projects'].project.insert_one(proj_model_dump)
+        print(f"Created project '{projectName}' with hardware: {hwSets}")
         return True
 
     except Exception as e:
-        print(f"❌ Error creating project: {e}")
+        print(f"Error creating project: {e}")
         return False
 
 
@@ -83,9 +89,20 @@ def createProject(client, projectName, description, hwSets_dict):
 def getProjects(client):
     """Return all project entries."""
     try:
+        project_sets = list(client['Projects'].project.find({}))
+
+        _projects_storage =[]
+
+        for projSet in project_sets:
+            _projects_storage.append({
+                'projectName': projSet['projectName'],
+                'description': projSet['description'],
+                'hwSets': projSet['hwSets'],
+                'users': projSet['users']
+            })
         return _projects_storage
     except Exception as e:
-        print(f"❌ Error getting projects: {e}")
+        print(f"Error getting projects: {e}")
         return []
 
 
@@ -95,80 +112,103 @@ def getProjects(client):
 def addProjectUser(client, projectName, username):
     """Add a user to an existing project."""
     try:
-        for p in _projects_storage:
-            if p['projectName'] == projectName:
-                if username not in p['users']:
-                    p['users'].append(username)
-                    print(f"✅ Added user '{username}' to project '{projectName}'")
-                    return True
-                else:
-                    print(f"⚠️ User '{username}' already in project '{projectName}'")
-                    return False
-        print(f"⚠️ Project '{projectName}' not found.")
+        existing = client['Projects'].project.find_one({"projectName": projectName})
+        if existing:
+            users = existing['users']
+            if username not in users:
+                users.append(username)
+                client['Projects'].project.update_one(
+                    {'projectName': projectName},
+                    {'$set': {'users': users}}
+                )
+                print(f"Added user '{username}' to project '{projectName}'")
+                return True
+            else:
+                print(f"User '{username}' already in project '{projectName}'")
+                return False
+        print(f"Project '{projectName}' not found.")
         return False
     except Exception as e:
-        print(f"❌ Error adding user to project: {e}")
+        print(f"Error adding user to project: {e}")
         return False
 
 
 # ============================================================
 # Check out hardware within a project
 # ============================================================
-def checkOutHW(client, projectName, hwName, qty):
-    """
-    Check out hardware from a project's reserved pool.
-    Only affects the project's 'used' count.
-    """
+# Return signature: (success: bool, processed_qty: int, error_msg: str | None)
+
+def checkOutHW(client, projectName, hwName, qty, username=None):
     try:
-        for p in _projects_storage:
-            if p['projectName'] == projectName:
-                if hwName not in p['hwSets']:
-                    print(f"⚠️ '{hwName}' not found in project '{projectName}'")
-                    return False
+        existing = client['Projects'].project.find_one({"projectName": projectName})
+        if existing:
+            users = existing['users']
+            if username not in users:
+                return (False, 0, f"User '{username}' is not part of project '{projectName}'")
+            if hwName not in existing['hwSets']:
+                return (False, 0, f"'{hwName}' not found in project '{projectName}'")
+            hw_entry = existing['hwSets'][hwName]
+            available = hw_entry['capacity'] - hw_entry['used'] 
+            if qty > available:
+                return (False, 0, f"Not enough '{hwName}' available. Requested {qty}, only {available} left.")
+            hw_entry.setdefault('user_usage', {})
 
-                hw_entry = p['hwSets'][hwName]
-                available = hw_entry['capacity'] - hw_entry['used']
+            client['Projects'].project.update_one(
+                {"projectName": projectName},
+                {
+                    '$set': {
+                        f'hwSets.{hwName}.used': hw_entry['used'] + qty,
+                        f'hwSets.{hwName}.user_usage.{username}': hw_entry['user_usage'].get(username, 0) + qty
+                    }
+                }
+            )
+            return (True, qty, None)
 
-                if qty > available:
-                    print(f"⚠️ Not enough hardware in project pool. Requested {qty}, only {available} available.")
-                    qty = available
-
-                hw_entry['used'] += qty
-                print(f"✅ Checked out {qty} from '{hwName}' in project '{projectName}'")
-                return True
-
-        print(f"⚠️ Project '{projectName}' not found.")
-        return False
+        return (False, 0, f"Project '{projectName}' not found.")
     except Exception as e:
-        print(f"❌ Error checking out HW: {e}")
-        return False
-
+        return (False, 0, f"Error checking out HW: {e}")
 
 # ============================================================
 # Check in hardware within a project
 # ============================================================
-def checkInHW(client, projectName, hwName, qty):
-    """
-    Check in hardware to a project's reserved pool.
-    Only affects the project's 'used' count.
-    """
+def checkInHW(client, projectName, hwName, qty, username=None):
     try:
-        for p in _projects_storage:
-            if p['projectName'] == projectName:
-                if hwName not in p['hwSets']:
-                    print(f"⚠️ '{hwName}' not found in project '{projectName}'")
-                    return False
-
-                hw_entry = p['hwSets'][hwName]
-                if qty > hw_entry['used']:
-                    qty = hw_entry['used']  # cap to what’s checked out
-
-                hw_entry['used'] -= qty
-                print(f"✅ Checked in {qty} to '{hwName}' in project '{projectName}'")
-                return True
-
-        print(f"⚠️ Project '{projectName}' not found.")
-        return False
+        existing = client['Projects'].project.find_one({"projectName": projectName})
+        if existing:
+            if username not in existing['users']:
+                return (False, 0, f"User '{username}' is not part of project '{projectName}'")
+            if hwName not in existing['hwSets']:
+                return (False, 0, f"'{hwName}' not found in project '{projectName}'")
+            hw_entry = existing['hwSets'][hwName]
+            hw_entry.setdefault('user_usage', {})
+            user_checked_out = hw_entry['user_usage'].get(username, 0)
+            if user_checked_out <= 0:
+                return (False, 0, f"User '{username}' has no '{hwName}' checked out.")
+            # Cap to what the user actually has
+            processed = min(qty, user_checked_out)
+            
+            if hw_entry['user_usage'][username] <= 0:
+                client['Projects'].project.update_one(
+                    {"projectName": projectName},
+                    {
+                        '$unset': {
+                            f'hwSets.{hwName}.user_usage.{username}': ""
+                        }
+                    }
+                )
+                del hw_entry['user_usage'][username]
+            else:
+                client['Projects'].project.update_one(
+                    {"projectName": projectName},
+                    {
+                        '$set': {
+                            f'hwSets.{hwName}.used': hw_entry['used'] - processed,
+                            f'hwSets.{hwName}.user_usage.{username}': user_checked_out - processed
+                        }
+                    }
+                )
+            return (True, processed, None)
+        
+        return (False, 0, f"Project '{projectName}' not found.")
     except Exception as e:
-        print(f"❌ Error checking in HW: {e}")
-        return False
+        return (False, 0, f"Error checking in HW: {e}")

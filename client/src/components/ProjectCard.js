@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { Button, TextField, Checkbox, FormControlLabel } from "@mui/material";
+import { Button, TextField, Checkbox } from "@mui/material";
 import HWSetStatus from "./HWSetStatus";
 import UserBanner from "./UserBanner";
 
@@ -11,7 +11,6 @@ function ProjectCard({ name, users = [], hwSets = {}, username, onUserJoined }) 
   const [selectedHW, setSelectedHW] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // ✅ safely check membership (handles both object and string usernames)
   const isMember = users.some(
     (u) =>
       (typeof u === "object" ? u.username : u) ===
@@ -20,8 +19,7 @@ function ProjectCard({ name, users = [], hwSets = {}, username, onUserJoined }) 
 
   // --- JOIN PROJECT ---
   const handleJoin = async () => {
-    const uname =
-      typeof username === "object" ? username.username : username;
+    const uname = typeof username === "object" ? username.username : username;
 
     if (!uname) {
       setMessage("❌ Missing username — please log in again.");
@@ -65,21 +63,31 @@ function ProjectCard({ name, users = [], hwSets = {}, username, onUserJoined }) 
     setIsProcessing(true);
     setMessage("");
 
+    const uname =
+      typeof username === "object" ? username.username : username;
+
+    // Define endpoint inside function scope
     const endpoint =
       action === "checkin"
         ? "http://localhost:8001/projects/checkin"
         : "http://localhost:8001/projects/checkout";
 
     try {
+      // Send username along with project info
       const res = await axios.post(endpoint, {
+        username: uname,
         projectName: name,
         hwName: selectedHW,
         qty: Number(qty),
       });
 
       if (res.data.success) {
+        // Use processedQty returned by backend (fall back to requested qty)
+        const processed = res.data.processedQty ?? Number(qty);
         setMessage(
-          `✅ ${action === "checkin" ? "Checked in" : "Checked out"} ${qty} from ${selectedHW}`
+          `✅ User "${uname}" successfully ${
+            action === "checkin" ? "checked in" : "checked out"
+          } ${processed} of ${selectedHW}`
         );
         if (onUserJoined) onUserJoined();
         setQty("");
@@ -93,6 +101,7 @@ function ProjectCard({ name, users = [], hwSets = {}, username, onUserJoined }) 
       setIsProcessing(false);
     }
   };
+
 
   const handleSelectHW = (hwName) => {
     setSelectedHW((prev) => (prev === hwName ? null : hwName));
