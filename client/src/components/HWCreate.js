@@ -41,7 +41,7 @@ function HWCreate({ onHardwareUpdated }) {
 
     setIsLoading(true);
     try {
-      const res = await axios.post("http://localhost:8001/hardware/create", {
+      const res = await axios.post("https://backendserver1-ab6b6912c013.herokuapp.com/hardware/create", {
         hwName,
         capacity: Number(capacity),
       });

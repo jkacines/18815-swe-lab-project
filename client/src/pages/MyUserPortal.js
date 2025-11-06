@@ -54,7 +54,7 @@ const MyUserPortal = ({ response, onLogout }) => {
 
   const fetchProjects = async () => {
     try {
-      const res = await axios.get("http://localhost:8001/projects");
+      const res = await axios.get("https://backendserver1-ab6b6912c013.herokuapp.com/projects");
       if (res.data.success) setProjects(res.data.projects);
     } catch (err) {
       console.error("Error fetching projects:", err);
@@ -63,7 +63,7 @@ const MyUserPortal = ({ response, onLogout }) => {
 
   const fetchHardware = async () => {
     try {
-      const res = await axios.get("http://localhost:8001/hardware");
+      const res = await axios.get("https://backendserver1-ab6b6912c013.herokuapp.com/hardware");
       if (res.data.success) setHardware(res.data.hardware);
     } catch (err) {
       console.error("Error fetching hardware:", err);

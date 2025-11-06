@@ -61,7 +61,7 @@ function ProjectCreate({ hardware = [], onProjectUpdated }) {
 
     setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:8001/projects/create", {
+      const response = await axios.post("https://backendserver1-ab6b6912c013.herokuapp.com/projects/create", {
         projectName,
         description,
         hwSets: hwSetsPayload,

@@ -30,7 +30,7 @@ function ProjectCard({ name, users = [], hwSets = {}, username, onUserJoined }) 
     setMessage("");
 
     try {
-      const res = await axios.post("http://localhost:8001/projects/addUser", {
+      const res = await axios.post("https://backendserver1-ab6b6912c013.herokuapp.com/projects/addUser", {
         projectName: name,
         username: uname,
       });
@@ -69,8 +69,8 @@ function ProjectCard({ name, users = [], hwSets = {}, username, onUserJoined }) 
     // Define endpoint inside function scope
     const endpoint =
       action === "checkin"
-        ? "http://localhost:8001/projects/checkin"
-        : "http://localhost:8001/projects/checkout";
+        ? "https://backendserver1-ab6b6912c013.herokuapp.com/projects/checkin"
+        : "https://backendserver1-ab6b6912c013.herokuapp.com/projects/checkout";
 
     try {
       // Send username along with project info

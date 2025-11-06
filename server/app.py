@@ -4,6 +4,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
 import os
+import certifi
 
 # Import custom modules for database interactions
 import usersDatabase as usersDB
@@ -18,6 +19,10 @@ MONGODB_DATABASE_HW = 'Hardware'
 # Initialize a new Flask web application
 app = Flask(__name__)
 CORS(app)
+
+# Helper function to create MongoDB client with proper SSL configuration
+def get_mongo_client():
+    return MongoClient(MONGODB_URI, tlsCAFile=certifi.where(), serverSelectionTimeoutMS=10000, socketTimeoutMS=10000)
 
 # Route for the main page (Untested)
 @app.route('/main')
@@ -97,7 +102,7 @@ def login():
             }), 400
 
         # Connect to MongoDB
-        with MongoClient(MONGODB_URI) as client:
+        with get_mongo_client() as client:
             db = client[MONGODB_DATABASE_USER]
 
             # Attempt to log in the user
@@ -140,7 +145,7 @@ def register():
             }), 400
 
         # Connect to MongoDB
-        with MongoClient(MONGODB_URI) as client:
+        with get_mongo_client() as client:
             db = client[MONGODB_DATABASE_USER]
 
             # Check if username already exists
