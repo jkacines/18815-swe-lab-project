@@ -469,8 +469,14 @@ def serve_react_app():
     return send_from_directory(app.static_folder, 'index.html')
 
 # Catch-all route to serve React app for client-side routing
+# This must be AFTER all API routes
 @app.route('/<path:path>')
 def serve_react_routes(path):
+    # Don't catch API routes - let them return 404 if not found
+    if path.startswith('user/') or path.startswith('projects/') or path.startswith('hardware/') or path.startswith('main') or path.startswith('join_project'):
+        # This is an API route that doesn't exist, return 404
+        return jsonify({'success': False, 'message': 'API endpoint not found'}), 404
+    
     # If the path is a file that exists, serve it
     if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
