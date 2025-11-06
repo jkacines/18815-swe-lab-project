@@ -1,0 +1,16 @@
+{
+  "name": "hardware-checkout-fullstack",
+  "version": "1.0.0",
+  "description": "Full-stack Hardware Checkout System",
+  "engines": {
+    "node": "20.x",
+    "npm": "10.x"
+  },
+  "scripts": {
+    "build": "cd client && npm install && npm run build",
+    "heroku-postbuild": "npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

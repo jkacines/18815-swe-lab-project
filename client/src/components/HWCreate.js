@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import API_URL from "../config";
 import {
   Box,
   Typography,
@@ -41,7 +42,7 @@ function HWCreate({ onHardwareUpdated }) {
 
     setIsLoading(true);
     try {
-      const res = await axios.post("https://backendserver1-ab6b6912c013.herokuapp.com/hardware/create", {
+      const res = await axios.post(`${API_URL}/hardware/create`, {
         hwName,
         capacity: Number(capacity),
       });

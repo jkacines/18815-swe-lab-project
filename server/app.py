@@ -1,6 +1,6 @@
 # Import necessary libraries and modules
 from bson.objectid import ObjectId
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from pymongo import MongoClient
 import os
@@ -16,7 +16,8 @@ MONGODB_DATABASE_USER = 'User'
 MONGODB_DATABASE_HW = 'Hardware'
 
 # Initialize a new Flask web application
-app = Flask(__name__)
+# Point to the React build folder
+app = Flask(__name__, static_folder='../client/build', static_url_path='')
 CORS(app)
 
 # Route for the main page (Untested)
@@ -461,6 +462,20 @@ def get_hardware():
             'message': f'Error retrieving hardware: {str(e)}'
         }), 500
 
+
+# Serve React App
+@app.route('/')
+def serve_react_app():
+    return send_from_directory(app.static_folder, 'index.html')
+
+# Catch-all route to serve React app for client-side routing
+@app.route('/<path:path>')
+def serve_react_routes(path):
+    # If the path is a file that exists, serve it
+    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    # Otherwise, serve index.html for React Router
+    return send_from_directory(app.static_folder, 'index.html')
 
 # Main entry point for the application
 if __name__ == '__main__':

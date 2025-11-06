@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import API_URL from "../config";
 import Projects from "../components/Projects";
 import ProjectFilters from "../components/ProjectFilters";
 import ProjectCreate from "../components/ProjectCreate";
@@ -54,7 +55,7 @@ const MyUserPortal = ({ response, onLogout }) => {
 
   const fetchProjects = async () => {
     try {
-      const res = await axios.get("https://backendserver1-ab6b6912c013.herokuapp.com/projects");
+      const res = await axios.get(`${API_URL}/projects`);
       if (res.data.success) setProjects(res.data.projects);
     } catch (err) {
       console.error("Error fetching projects:", err);
@@ -63,7 +64,7 @@ const MyUserPortal = ({ response, onLogout }) => {
 
   const fetchHardware = async () => {
     try {
-      const res = await axios.get("https://backendserver1-ab6b6912c013.herokuapp.com/hardware");
+      const res = await axios.get(`${API_URL}/hardware`);
       if (res.data.success) setHardware(res.data.hardware);
     } catch (err) {
       console.error("Error fetching hardware:", err);

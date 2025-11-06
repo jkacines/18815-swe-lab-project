@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './LoginPage.css';
+import API_URL from '../config';
 
 const MyLoginPage = ({ onLogin }) => {
   const [formData, setFormData] = useState({
@@ -48,7 +49,7 @@ const MyLoginPage = ({ onLogin }) => {
     setErrors({});
     
     try {
-      const response = await axios.post('https://backendserver1-ab6b6912c013.herokuapp.com/user/login', {
+      const response = await axios.post(`${API_URL}/user/login`, {
         username: formData.username,
         password: formData.password
       });

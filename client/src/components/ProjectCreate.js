@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import API_URL from "../config";
 import {
   Box,
   Typography,
@@ -61,7 +62,7 @@ function ProjectCreate({ hardware = [], onProjectUpdated }) {
 
     setIsLoading(true);
     try {
-      const response = await axios.post("https://backendserver1-ab6b6912c013.herokuapp.com/projects/create", {
+      const response = await axios.post(`${API_URL}/projects/create`, {
         projectName,
         description,
         hwSets: hwSetsPayload,

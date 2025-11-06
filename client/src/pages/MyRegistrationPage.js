@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import './LoginPage.css'; // Reuse the same CSS as login page
+import API_URL from '../config';
 
 const MyRegistrationPage = () => {
   const [formData, setFormData] = useState({
@@ -71,7 +72,7 @@ const MyRegistrationPage = () => {
     setErrors({});
     
     try {
-      const response = await axios.post('https://backendserver1-ab6b6912c013.herokuapp.com/user/register', {
+      const response = await axios.post(`${API_URL}/user/register`, {
         username: formData.username,
         password: formData.password,
         email: formData.email || undefined // Only send email if provided

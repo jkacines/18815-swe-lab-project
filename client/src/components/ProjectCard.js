@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
+import API_URL from "../config";
 import { Button, TextField, Checkbox } from "@mui/material";
 import HWSetStatus from "./HWSetStatus";
 import UserBanner from "./UserBanner";
@@ -30,7 +31,7 @@ function ProjectCard({ name, users = [], hwSets = {}, username, onUserJoined }) 
     setMessage("");
 
     try {
-      const res = await axios.post("https://backendserver1-ab6b6912c013.herokuapp.com/projects/addUser", {
+      const res = await axios.post(`${API_URL}/projects/addUser`, {
         projectName: name,
         username: uname,
       });
@@ -69,8 +70,8 @@ function ProjectCard({ name, users = [], hwSets = {}, username, onUserJoined }) 
     // Define endpoint inside function scope
     const endpoint =
       action === "checkin"
-        ? "https://backendserver1-ab6b6912c013.herokuapp.com/projects/checkin"
-        : "https://backendserver1-ab6b6912c013.herokuapp.com/projects/checkout";
+        ? `${API_URL}/projects/checkin`
+        : `${API_URL}/projects/checkout`;
 
     try {
       // Send username along with project info
