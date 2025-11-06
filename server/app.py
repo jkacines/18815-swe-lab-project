@@ -22,7 +22,7 @@ CORS(app)
 
 # Helper function to create MongoDB client with proper SSL configuration
 def get_mongo_client():
-    return MongoClient(MONGODB_URI, tlsCAFile=certifi.where(), serverSelectionTimeoutMS=10000, socketTimeoutMS=10000)
+    return MongoClient(MONGODB_URI, tlsCAFile=certifi.where())
 
 # Route for the main page (Untested)
 @app.route('/main')
