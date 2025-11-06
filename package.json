@@ -7,7 +7,7 @@
     "npm": "10.x"
   },
   "scripts": {
-    "build": "cd client && npm install && npm run build",
+    "build": "cd client && npm install --production=false && npm run build",
     "heroku-postbuild": "npm run build"
   },
   "keywords": [],
