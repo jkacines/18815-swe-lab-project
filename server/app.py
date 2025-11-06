@@ -1,6 +1,6 @@
 # Import necessary libraries and modules
 from bson.objectid import ObjectId
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, abort
 from flask_cors import CORS
 from pymongo import MongoClient
 import os
@@ -464,23 +464,21 @@ def get_hardware():
 
 
 # Serve React App
-@app.route('/')
-def serve_react_app():
-    return send_from_directory(app.static_folder, 'index.html')
-
-# Catch-all route to serve React app for client-side routing
-# This must be AFTER all API routes
+@app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_react_routes(path):
-    # Don't catch API routes - let them return 404 if not found
-    if path.startswith('user/') or path.startswith('projects/') or path.startswith('hardware/') or path.startswith('main') or path.startswith('join_project'):
-        # This is an API route that doesn't exist, return 404
-        return jsonify({'success': False, 'message': 'API endpoint not found'}), 404
+    # Check if this is an API route - if so, skip to let Flask handle it properly
+    # API routes don't get caught by this catch-all
+    if path.startswith(('user/', 'projects/', 'hardware/', 'main', 'join_project', 'get_')):
+        # Not a static file, let Flask's normal routing handle it
+        abort(404)
     
-    # If the path is a file that exists, serve it
-    if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+    # If the path is a file that exists in the build folder, serve it
+    file_path = os.path.join(app.static_folder, path)
+    if path and os.path.isfile(file_path):
         return send_from_directory(app.static_folder, path)
-    # Otherwise, serve index.html for React Router
+    
+    # Otherwise, serve index.html for React Router (SPA routing)
     return send_from_directory(app.static_folder, 'index.html')
 
 # Main entry point for the application
