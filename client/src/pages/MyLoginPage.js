@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './LoginPage.css';
 import API_URL from '../config';
 
 const MyLoginPage = ({ onLogin }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
     password: ''
@@ -78,8 +80,8 @@ const MyLoginPage = ({ onLogin }) => {
   };
 
   const handleRegisterRedirect = () => {
-    // This would be handled by routing in a full app
-    window.location.href = '/user/register';
+    // Use client-side routing to avoid full page reloads
+    navigate('/user/register');
   };
 
   return (

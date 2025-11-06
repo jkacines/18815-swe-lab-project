@@ -17,7 +17,9 @@ MONGODB_DATABASE_HW = 'Hardware'
 
 # Initialize a new Flask web application
 # Point to the React build folder
-app = Flask(__name__, static_folder='../client/build', static_url_path='')
+# IMPORTANT: Use default static_url_path ('/static') so unknown paths like '/user/register'
+# fall through to our catch-all route instead of Flask's built-in static handler 404ing.
+app = Flask(__name__, static_folder='../client/build')
 CORS(app)
 
 # Route for the main page (Untested)
