@@ -463,16 +463,11 @@ def get_hardware():
         }), 500
 
 
-# Serve React App
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
+# Serve React App - this should be the last route defined
+# Only respond to GET requests to avoid interfering with POST/PUT/DELETE API routes
+@app.route('/', defaults={'path': ''}, methods=['GET'])
+@app.route('/<path:path>', methods=['GET'])
 def serve_react_routes(path):
-    # Check if this is an API route - if so, skip to let Flask handle it properly
-    # API routes don't get caught by this catch-all
-    if path.startswith(('user/', 'projects/', 'hardware/', 'main', 'join_project', 'get_')):
-        # Not a static file, let Flask's normal routing handle it
-        abort(404)
-    
     # If the path is a file that exists in the build folder, serve it
     file_path = os.path.join(app.static_folder, path)
     if path and os.path.isfile(file_path):
