@@ -3,19 +3,23 @@ import ProjectCard from "./ProjectCard";
 
 function Projects({ nameQuery, projects = [], username, onUserJoined, showMyProjects }) {
   const filtered = projects.filter((p) => {
-    const matchesName = (p.projectName || "")
-      .toLowerCase()
-      .includes(nameQuery.toLowerCase());
+    // const matchesName = (p.projectName)
+    //   .toLowerCase()
+    //   .includes(nameQuery.toLowerCase());
 
-    const isUserAuthorized = showMyProjects
-      ? p.users?.some(
-          (u) =>
-            (typeof u === "object" ? u.username : u) ===
-            (typeof username === "object" ? username.username : username)
-        )
-      : true;
+    const matchesName = (p.projectName).toLowerCase() == nameQuery.toLowerCase();
 
-    return matchesName && isUserAuthorized;
+    // const isUserInProject = showMyProjects
+    //   ? p.users?.some(
+    //       (u) =>
+    //         (typeof u === "object" ? u.username : u) ===
+    //         (typeof username === "object" ? username.username : username)
+    //     )
+    //   : true;
+    
+    //   const isUserAuthorized = isUserInProject || (nameQuery.trim() !== "" && matchesName);
+
+    return matchesName;
   });
 
 
