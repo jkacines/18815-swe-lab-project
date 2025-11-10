@@ -196,31 +196,39 @@ def checkInHW(client, projectName, hwName, qty, username=None):
             user_checked_out = hw_entry['user_usage'].get(username, 0)
             if user_checked_out <= 0:
                 return (False, 0, f"User '{username}' has no '{hwName}' checked out.")
-            # Cap to what the user actually has
+
+            # Only process up to what the user actually has (prevent over-checkin)
             processed = min(qty, user_checked_out)
-            
-            if hw_entry['user_usage'][username] <= 0:
+
+            # New per-user and project-used values
+            new_user_amount = user_checked_out - processed
+            new_used = hw_entry.get('used', 0) - processed
+            if new_used < 0:
+                new_used = 0
+
+            # Apply DB update: set the new 'used' and either update or unset the user's usage
+            if new_user_amount <= 0:
+                # remove the user's usage entry
                 client['Projects'].project.update_one(
                     {"projectName": projectName},
                     {
-                        '$unset': {
-                            f'hwSets.{hwName}.user_usage.{username}': ""
-                        }
+                        '$set': {f'hwSets.{hwName}.used': new_used},
+                        '$unset': {f'hwSets.{hwName}.user_usage.{username}': ""}
                     }
                 )
-                del hw_entry['user_usage'][username]
             else:
                 client['Projects'].project.update_one(
                     {"projectName": projectName},
                     {
                         '$set': {
-                            f'hwSets.{hwName}.used': hw_entry['used'] - processed,
-                            f'hwSets.{hwName}.user_usage.{username}': user_checked_out - processed
+                            f'hwSets.{hwName}.used': new_used,
+                            f'hwSets.{hwName}.user_usage.{username}': new_user_amount
                         }
                     }
                 )
+
             return (True, processed, None)
-        
+
         return (False, 0, f"Project '{projectName}' not found.")
     except Exception as e:
         return (False, 0, f"Error checking in HW: {e}")
