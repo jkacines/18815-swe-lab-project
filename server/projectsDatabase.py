@@ -37,23 +37,35 @@ def createProject(client, projectName, description, hwSets_dict):
         # Prevent duplicate project names
         existing = client['Projects'].project.find_one({"projectName": projectName})
         if existing:
-            return False
+            return (False, f"Project '{projectName}' already exists.")
 
+        # 1) Validate all requested hw sets exist and have sufficient availability
         hwSets = {}
-
+        validation_errors = []
         for hwName, reserve_amount in hwSets_dict.items():
             hw_info = HWDB.queryHardwareSet(client, hwName)
             if not hw_info:
-                print(f"Hardware set '{hwName}' not found.")
+                validation_errors.append(f"Hardware set '{hwName}' not found.")
                 continue
 
-            capacity = hw_info['capacity']
-            availability = hw_info['availability']
-
-            # Ensure enough global hardware is available
+            availability = hw_info.get('availability', 0)
             if reserve_amount > availability:
-                print(f"⚠️ Not enough '{hwName}' available. Requested {reserve_amount}, only {availability} left.")
-                reserve_amount = availability
+                validation_errors.append(
+                    f"Not enough '{hwName}' available. Requested {reserve_amount}, only {availability} left."
+                )
+
+        # If any validation failed, abort creation and do not modify global HW state
+        if validation_errors:
+            for msg in validation_errors:
+                print(f"⚠️ {msg}")
+            print(f"Project creation for '{projectName}' aborted due to insufficient hardware or missing sets.")
+            return (False, '; '.join(validation_errors))
+
+        # 2) All validations passed — reserve hardware from the global pool and build project hwSets
+        for hwName, reserve_amount in hwSets_dict.items():
+            hw_info = HWDB.queryHardwareSet(client, hwName)
+            capacity = hw_info.get('capacity', 0)
+            availability = hw_info.get('availability', 0)
 
             # Deduct reserved amount from global availability
             new_global_avail = availability - reserve_amount
@@ -76,11 +88,11 @@ def createProject(client, projectName, description, hwSets_dict):
         proj_model_dump = project_doc.model_dump()
         client['Projects'].project.insert_one(proj_model_dump)
         print(f"Created project '{projectName}' with hardware: {hwSets}")
-        return True
+        return (True, None)
 
     except Exception as e:
         print(f"Error creating project: {e}")
-        return False
+        return (False, f"Error creating project: {e}")
 
 
 # ============================================================
