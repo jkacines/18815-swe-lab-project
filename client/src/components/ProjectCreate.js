@@ -79,8 +79,7 @@ function ProjectCreate({ hardware = [], onProjectUpdated }) {
       }
     } catch (error) {
       console.error("Error creating project:", error);
-      setMessage("❌ Failed to create project. Please try again.");
-    } finally {
+      setMessage(`❌ ${error.response?.data?.message || "Failed to create project. Please try again."}`);    } finally {
       setIsLoading(false);
     }
   };
