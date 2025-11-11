@@ -2,12 +2,12 @@ import React from "react";
 import ProjectCard from "./ProjectCard";
 
 function Projects({ nameQuery, projects = [], username, onUserJoined, showMyProjects }) {
-  const filtered = projects.filter((p) => {
+  //const filtered = projects.filter((p) => {
     // const matchesName = (p.projectName)
     //   .toLowerCase()
     //   .includes(nameQuery.toLowerCase());
 
-    const matchesName = (p.projectName).toLowerCase() == nameQuery.toLowerCase();
+   // const matchesName = (p.projectName).toLowerCase() == nameQuery.toLowerCase();
 
     // const isUserInProject = showMyProjects
     //   ? p.users?.some(
@@ -19,8 +19,25 @@ function Projects({ nameQuery, projects = [], username, onUserJoined, showMyProj
     
     //   const isUserAuthorized = isUserInProject || (nameQuery.trim() !== "" && matchesName);
 
-    return matchesName;
-  });
+   // return matchesName;
+
+  //});
+   const filtered = projects.filter((p) => {
+     const matchesName =
+        nameQuery.trim() !== "" &&
+        p.projectName.toLowerCase().includes(nameQuery.toLowerCase());
+
+     const isUserInProject = showMyProjects
+        ? p.users?.some(
+            (u) =>
+               (typeof u === "object" ? u.username : u) ===
+               (typeof username === "object" ? username.username : username)
+          )
+        : false;
+
+       return matchesName || isUserInProject;
+    });
+
 
 
   return (
