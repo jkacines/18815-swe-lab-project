@@ -191,41 +191,23 @@ def checkInHW(client, projectName, hwName, qty, username=None):
                 return (False, 0, f"User '{username}' is not part of project '{projectName}'")
             if hwName not in existing['hwSets']:
                 return (False, 0, f"'{hwName}' not found in project '{projectName}'")
+
             hw_entry = existing['hwSets'][hwName]
-            hw_entry.setdefault('user_usage', {})
-            user_checked_out = hw_entry['user_usage'].get(username, 0)
-            if user_checked_out <= 0:
-                return (False, 0, f"User '{username}' has no '{hwName}' checked out.")
+            current_used = hw_entry.get('used', 0)
 
-            # Only process up to what the user actually has (prevent over-checkin)
-            processed = min(qty, user_checked_out)
+            if current_used <= 0:
+                return (False, 0, f"No '{hwName}' currently checked out in project '{projectName}'")
 
-            # New per-user and project-used values
-            new_user_amount = user_checked_out - processed
-            new_used = hw_entry.get('used', 0) - processed
-            if new_used < 0:
-                new_used = 0
+            # Only process up to what is actually used
+            processed = min(qty, current_used)
+            new_used = current_used - processed
 
-            # Apply DB update: set the new 'used' and either update or unset the user's usage
-            if new_user_amount <= 0:
-                # remove the user's usage entry
-                client['Projects'].project.update_one(
-                    {"projectName": projectName},
-                    {
-                        '$set': {f'hwSets.{hwName}.used': new_used},
-                        '$unset': {f'hwSets.{hwName}.user_usage.{username}': ""}
-                    }
-                )
-            else:
-                client['Projects'].project.update_one(
-                    {"projectName": projectName},
-                    {
-                        '$set': {
-                            f'hwSets.{hwName}.used': new_used,
-                            f'hwSets.{hwName}.user_usage.{username}': new_user_amount
-                        }
-                    }
-                )
+            client['Projects'].project.update_one(
+                {"projectName": projectName},
+                {
+                    '$set': {f'hwSets.{hwName}.used': new_used}
+                }
+            )
 
             return (True, processed, None)
 
