@@ -256,8 +256,8 @@ def create_project():
             }), 400
 
         with MongoClient(MONGODB_URI) as client:
-            success = projectsDB.createProject(client, projectName, description, hwSets)
-    
+            success, err = projectsDB.createProject(client, projectName, description, hwSets)
+
             if success:
                 return jsonify({
                     'success': True,
@@ -266,7 +266,7 @@ def create_project():
             else:
                 return jsonify({
                     'success': False,
-                    'message': f'Failed to create project "{projectName}". It may already exist or hardware allocation failed.'
+                    'message': err or f'Failed to create project "{projectName}". It may already exist or hardware allocation failed.'
                 }), 400
 
     except Exception as e:

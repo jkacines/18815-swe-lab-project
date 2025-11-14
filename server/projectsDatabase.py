@@ -37,23 +37,35 @@ def createProject(client, projectName, description, hwSets_dict):
         # Prevent duplicate project names
         existing = client['Projects'].project.find_one({"projectName": projectName})
         if existing:
-            return False
+            return (False, f"Project '{projectName}' already exists.")
 
+        # 1) Validate all requested hw sets exist and have sufficient availability
         hwSets = {}
-
+        validation_errors = []
         for hwName, reserve_amount in hwSets_dict.items():
             hw_info = HWDB.queryHardwareSet(client, hwName)
             if not hw_info:
-                print(f"Hardware set '{hwName}' not found.")
+                validation_errors.append(f"Hardware set '{hwName}' not found.")
                 continue
 
-            capacity = hw_info['capacity']
-            availability = hw_info['availability']
-
-            # Ensure enough global hardware is available
+            availability = hw_info.get('availability', 0)
             if reserve_amount > availability:
-                print(f"⚠️ Not enough '{hwName}' available. Requested {reserve_amount}, only {availability} left.")
-                reserve_amount = availability
+                validation_errors.append(
+                    f"Not enough '{hwName}' available. Requested {reserve_amount}, only {availability} left."
+                )
+
+        # If any validation failed, abort creation and do not modify global HW state
+        if validation_errors:
+            for msg in validation_errors:
+                print(f"⚠️ {msg}")
+            print(f"Project creation for '{projectName}' aborted due to insufficient hardware or missing sets.")
+            return (False, '; '.join(validation_errors))
+
+        # 2) All validations passed — reserve hardware from the global pool and build project hwSets
+        for hwName, reserve_amount in hwSets_dict.items():
+            hw_info = HWDB.queryHardwareSet(client, hwName)
+            capacity = hw_info.get('capacity', 0)
+            availability = hw_info.get('availability', 0)
 
             # Deduct reserved amount from global availability
             new_global_avail = availability - reserve_amount
@@ -76,11 +88,11 @@ def createProject(client, projectName, description, hwSets_dict):
         proj_model_dump = project_doc.model_dump()
         client['Projects'].project.insert_one(proj_model_dump)
         print(f"Created project '{projectName}' with hardware: {hwSets}")
-        return True
+        return (True, None)
 
     except Exception as e:
         print(f"Error creating project: {e}")
-        return False
+        return (False, f"Error creating project: {e}")
 
 
 # ============================================================
@@ -179,36 +191,26 @@ def checkInHW(client, projectName, hwName, qty, username=None):
                 return (False, 0, f"User '{username}' is not part of project '{projectName}'")
             if hwName not in existing['hwSets']:
                 return (False, 0, f"'{hwName}' not found in project '{projectName}'")
+
             hw_entry = existing['hwSets'][hwName]
-            hw_entry.setdefault('user_usage', {})
-            user_checked_out = hw_entry['user_usage'].get(username, 0)
-            if user_checked_out <= 0:
-                return (False, 0, f"User '{username}' has no '{hwName}' checked out.")
-            # Cap to what the user actually has
-            processed = min(qty, user_checked_out)
-            
-            if hw_entry['user_usage'][username] <= 0:
-                client['Projects'].project.update_one(
-                    {"projectName": projectName},
-                    {
-                        '$unset': {
-                            f'hwSets.{hwName}.user_usage.{username}': ""
-                        }
-                    }
-                )
-                del hw_entry['user_usage'][username]
-            else:
-                client['Projects'].project.update_one(
-                    {"projectName": projectName},
-                    {
-                        '$set': {
-                            f'hwSets.{hwName}.used': hw_entry['used'] - processed,
-                            f'hwSets.{hwName}.user_usage.{username}': user_checked_out - processed
-                        }
-                    }
-                )
+            current_used = hw_entry.get('used', 0)
+
+            if current_used <= 0:
+                return (False, 0, f"No '{hwName}' currently checked out in project '{projectName}'")
+
+            # Only process up to what is actually used
+            processed = min(qty, current_used)
+            new_used = current_used - processed
+
+            client['Projects'].project.update_one(
+                {"projectName": projectName},
+                {
+                    '$set': {f'hwSets.{hwName}.used': new_used}
+                }
+            )
+
             return (True, processed, None)
-        
+
         return (False, 0, f"Project '{projectName}' not found.")
     except Exception as e:
         return (False, 0, f"Error checking in HW: {e}")
