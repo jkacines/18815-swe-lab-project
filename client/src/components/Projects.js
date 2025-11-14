@@ -25,7 +25,7 @@ function Projects({ nameQuery, projects = [], username, onUserJoined, showMyProj
    const filtered = projects.filter((p) => {
      const matchesName =
         nameQuery.trim() !== "" &&
-        p.projectName.toLowerCase().includes(nameQuery.toLowerCase());
+        p.projectName.toLowerCase() === nameQuery.toLowerCase();
 
      const isUserInProject = showMyProjects
         ? p.users?.some(
